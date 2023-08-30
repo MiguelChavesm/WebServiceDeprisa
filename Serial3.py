@@ -1,7 +1,7 @@
 import serial
 import serial.tools.list_ports
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import threading
 
 class SerialInterface:
@@ -41,7 +41,9 @@ class SerialInterface:
             self.data_thread = threading.Thread(target=self.leer_datos)
             self.data_thread.start()
         except Exception as e:
-            print("Error al abrir el puerto:", e)
+            mensaje = f"Error al abrir el puerto, no se encuentra o ya está abierto en otro programa"
+            messagebox.showerror("Error", mensaje)
+
 
     def cerrar_puerto(self):
         if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
