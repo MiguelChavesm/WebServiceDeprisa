@@ -44,15 +44,28 @@ class SerialInterface:
             self.data_thread = threading.Thread(target=self.leer_datos)
             self.data_thread.start()
         except Exception as e:
-            mensaje = f"Error al abrir el puerto, no se encuentra o ya está abierto en otro programa"
+            mensaje = "Error al abrir el puerto, no se encuentra o ya está abierto en otro programa"
             messagebox.showerror("Error", mensaje)
 
 
     def cerrar_puerto(self):
         if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
             self.puerto_serial.close()
+            self.puerto_serial = None
             self.abrir_puerto_button.configure(state="enabled")
             self.cerrar_puerto_button.configure(state="disabled")
+    
+    
+    def leer_datos(self):
+        while hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
+            try:
+                dato = self.puerto_serial.readline().decode('utf-8')
+                self.datos_received_text.insert(tk.END, dato)
+                self.datos_received_text.see(tk.END)  # Hacer scroll para mostrar los nuevos datos
+            except:
+                pass
+
+
 
     def enviar_trama(self):
         if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
@@ -64,16 +77,9 @@ class SerialInterface:
         try:
             self.puerto_serial.write(trama)
         except Exception as e:
-            print("Error al enviar la trama:", e)
+            print("Error al enviar la trama:", e)  
 
-    def leer_datos(self):
-        while True:
-            try:
-                dato = self.puerto_serial.readline().decode('utf-8')
-                self.datos_received_text.insert(tk.END, dato)
-                self.datos_received_text.see(tk.END)  # Hacer scroll para mostrar los nuevos datos
-            except:
-                pass
+
             
 
 if __name__ == "__main__":
