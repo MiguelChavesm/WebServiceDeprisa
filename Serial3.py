@@ -20,9 +20,10 @@ class SerialInterface:
 
         self.abrir_puerto_button = ttk.Button(root, text="Abrir Puerto", command=self.abrir_puerto)
         self.abrir_puerto_button.pack(padx=10, pady=5)
-        
+
         self.cerrar_puerto_button = ttk.Button(root, text="Cerrar Puerto", command=self.cerrar_puerto)
         self.cerrar_puerto_button.pack(padx=10, pady=5)
+        self.cerrar_puerto_button.configure(state="disabled")
 
         self.datos_received_text = tk.Text(root)
         self.datos_received_text.pack(padx=10, pady=10)
@@ -36,10 +37,18 @@ class SerialInterface:
         try:
             self.puerto_serial = serial.Serial(puerto_seleccionado, baudrate=9600)
             self.abrir_puerto_button.configure(state="disabled")
+            self.cerrar_puerto_button.configure(state="enabled")
             self.data_thread = threading.Thread(target=self.leer_datos)
             self.data_thread.start()
         except Exception as e:
             print("Error al abrir el puerto:", e)
+
+    def cerrar_puerto(self):
+        if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
+            self.puerto_serial.close()
+            self.abrir_puerto_button.configure(state="enabled")
+            self.cerrar_puerto_button.configure(state="disabled")
+
 
     def leer_datos(self):
         while True:
@@ -50,11 +59,6 @@ class SerialInterface:
             except:
                 pass
             
-    def cerrar_puerto(self):
-        if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
-            self.puerto_serial.close()
-            self.abrir_puerto_button.configure(state="enabled")
-            self.cerrar_puerto_button.configure(state="disabled")
 
 if __name__ == "__main__":
     root = tk.Tk()
