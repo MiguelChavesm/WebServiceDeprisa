@@ -24,12 +24,34 @@ class SerialInterface:
         self.cerrar_puerto_button = ttk.Button(root, text="Cerrar Puerto", command=self.cerrar_puerto)
         self.cerrar_puerto_button.pack(padx=10, pady=5)
         self.cerrar_puerto_button.configure(state="disabled")
-
-        self.datos_received_text = tk.Text(root)
-        self.datos_received_text.pack(padx=10, pady=10)
         
         self.medir_button = ttk.Button(root, text="Medir", command=self.enviar_trama)
         self.medir_button.pack(padx=10, pady=5)
+
+        self.medir_button.bind('<Return>', self.on_enter_press)
+        self.medir_button.bind('<FocusIn>', self.on_button_focus_in)
+        self.medir_button.bind('<FocusOut>', self.on_button_focus_out)
+
+        self.is_button_focused = False
+        
+        self.datos_received_text = tk.Text(root)
+        self.datos_received_text.pack(padx=10, pady=10)
+        
+        self.listar_puertos()
+        puertos_disponibles = [p for p in self.puertos_combobox['values'] if p]  # Filtrar puertos no vacíos
+        if len(puertos_disponibles) == 1:  # Si solo hay un puerto no vacío
+            self.puertos_combobox.set(puertos_disponibles[0])  # Establecer el único puerto automáticamente
+            self.abrir_puerto()  # Abrir automáticamente el puerto
+
+    def on_enter_press(self, event):
+        if self.is_button_focused:
+            self.enviar_trama()
+
+    def on_button_focus_in(self, event):
+        self.is_button_focused = True
+
+    def on_button_focus_out(self, event):
+        self.is_button_focused = False
 
     def listar_puertos(self):
         puertos = [puerto.device for puerto in serial.tools.list_ports.comports()]
@@ -44,7 +66,10 @@ class SerialInterface:
             self.data_thread = threading.Thread(target=self.leer_datos)
             self.data_thread.start()
         except Exception as e:
-            mensaje = "Error al abrir el puerto, no se encuentra o ya está abierto en otro programa"
+            #mensaje = "Error al abrir el puerto, no se encuentra o ya está abierto en otro programa"
+            mensaje = f"Error al abrir el puerto: {e}"
+            messagebox.showerror("Error", mensaje)
+
             messagebox.showerror("Error", mensaje)
 
 
