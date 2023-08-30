@@ -20,6 +20,9 @@ class SerialInterface:
 
         self.abrir_puerto_button = ttk.Button(root, text="Abrir Puerto", command=self.abrir_puerto)
         self.abrir_puerto_button.pack(padx=10, pady=5)
+        
+        self.cerrar_puerto_button = ttk.Button(root, text="Cerrar Puerto", command=self.cerrar_puerto)
+        self.cerrar_puerto_button.pack(padx=10, pady=5)
 
         self.datos_received_text = tk.Text(root)
         self.datos_received_text.pack(padx=10, pady=10)
@@ -46,10 +49,14 @@ class SerialInterface:
                 self.datos_received_text.see(tk.END)  # Hacer scroll para mostrar los nuevos datos
             except:
                 pass
+            
+    def cerrar_puerto(self):
+        if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
+            self.puerto_serial.close()
+            self.abrir_puerto_button.configure(state="enabled")
+            self.cerrar_puerto_button.configure(state="disabled")
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = SerialInterface(root)
     root.mainloop()
-    
-    #Comentario Miguel
