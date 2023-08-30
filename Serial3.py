@@ -27,6 +27,9 @@ class SerialInterface:
 
         self.datos_received_text = tk.Text(root)
         self.datos_received_text.pack(padx=10, pady=10)
+        
+        self.medir_button = ttk.Button(root, text="Medir", command=self.enviar_trama)
+        self.medir_button.pack(padx=10, pady=5)
 
     def listar_puertos(self):
         puertos = [puerto.device for puerto in serial.tools.list_ports.comports()]
@@ -51,6 +54,17 @@ class SerialInterface:
             self.abrir_puerto_button.configure(state="enabled")
             self.cerrar_puerto_button.configure(state="disabled")
 
+    def enviar_trama(self):
+        if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
+            trama = b'\x02M\x03\r\n'  # Trama: <STX>M<ETX><CR><LF>
+            enviar_thread = threading.Thread(target=self.enviar_trama_thread, args=(trama,))
+            enviar_thread.start()
+
+    def enviar_trama_thread(self, trama):
+        try:
+            self.puerto_serial.write(trama)
+        except Exception as e:
+            print("Error al enviar la trama:", e)
 
     def leer_datos(self):
         while True:
