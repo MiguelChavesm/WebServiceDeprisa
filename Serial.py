@@ -3,11 +3,20 @@ from tkinter import ttk
 import requests
 import json
 import datetime
+from tkinter import messagebox
+from tkinter import simpledialog
+import threading
+
+paquetes_enviados = 0
+paquetes_no_enviados = 0
+
 
 class WebServiceApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Web Service Client")
+        self.default_username = "002"
+        self.default_password = "CubiqCu123*"
 
         # Crear pestañas
         self.notebook = ttk.Notebook(root)
@@ -24,6 +33,17 @@ class WebServiceApp:
         self.height_var = tk.StringVar()
         self.weight_var = tk.StringVar()
         self.response_text = tk.StringVar()
+
+        # Etiquetas del contador
+        self.paquetes_enviados_label = tk.Label(
+            self.tab1, text="paquetes enviados: 0", font=("verdama", 10)
+        )
+        self.paquetes_enviados_label.grid(row=0, column=2)
+
+        self.paquetes_no_enviados_label = tk.Label(
+            self.tab1, text="paquetes con mala respuesta: 0", font=("Verdana", 10)
+        )
+        self.paquetes_no_enviados_label.grid(row=1, column=2)
 
         sku_label = tk.Label(self.tab1, text="SKU:")
         sku_label.grid(row=0, column=0)
@@ -52,11 +72,25 @@ class WebServiceApp:
 
         send_button = tk.Button(self.tab1, text="Enviar", command=self.send_data)
         send_button.grid(row=5, columnspan=2)
+        send_button.bind("<Return>", lambda event: self.send_data())
+
+        sku_entry.bind("<Return>", lambda event: self.on_return_pressed())
+        length_entry.bind("<Return>", lambda event: self.on_return_pressed())
+        width_entry.bind("<Return>", lambda event: self.on_return_pressed())
+        height_entry.bind("<Return>", lambda event: self.on_return_pressed())
+        weight_entry.bind("<Return>", lambda event: self.on_return_pressed())
 
         response_label = tk.Label(self.tab1, text="Respuesta:")
         response_label.grid(row=6, column=0)
-        response_entry = tk.Entry(self.tab1, textvariable=self.response_text, state="readonly")
+        response_entry = tk.Entry(
+            self.tab1, textvariable=self.response_text, state="readonly"
+        )
         response_entry.grid(row=6, column=1)
+
+        def on_return_pressed(self):
+            self.send_data()
+            self.clear_fields()
+            sku_entry.focus()
 
         # Configuración de la pestaña 2
         self.url_var = tk.StringVar()
@@ -84,7 +118,18 @@ class WebServiceApp:
         machine_name_entry = tk.Entry(self.tab2, textvariable=self.machine_name_var)
         machine_name_entry.grid(row=3, column=1)
 
+    def update_contadores(self):
+        self.paquetes_enviados_label.config(
+            text=f"paquetes enviados : {paquetes_enviados}"
+        )
+        self.paquetes_no_enviados_label.config(
+            text=f"paquetes con mala respuesta: {paquetes_no_enviados}"
+        )
+
     def send_data(self):
+        global paquetes_enviados
+        global paquetes_no_enviados
+
         # Construir el JSON con los datos ingresados
         data = {
             "machine_pid": self.machine_name_var.get(),
@@ -94,21 +139,34 @@ class WebServiceApp:
             "width": self.width_var.get(),
             "height": self.height_var.get(),
             "weight": self.weight_var.get(),
-            "unit_type": "cm"
+            "unit_type": "cm",
         }
 
         # Realizar la solicitud POST al WebService
         url = self.url_var.get()
         headers = {"Content-Type": "application/json"}
-        response = requests.post(url, data=json.dumps(data), headers=headers, auth=(self.username_var.get(), self.password_var.get()))
+        response = requests.post(
+            url,
+            data=json.dumps(data),
+            headers=headers,
+            auth=(self.username_var.get(), self.password_var.get()),
+        )
+        #    contador actualizado
+        if response.status_code == 200:
+            paquetes_enviados += 1
+        else:
+            paquetes_no_enviados += 1
 
         # Actualizar la respuesta en la interfaz
         self.response_text.set(response.text)
+        # actualizar contadores
+        self.update_contadores()
+
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = WebServiceApp(root)
     root.mainloop()
 
-#Comentario prueba GIT 
-#Otro comentario
+# Comentario prueba GIT
+# Otro comentario
