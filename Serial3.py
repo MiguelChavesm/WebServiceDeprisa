@@ -7,6 +7,7 @@ import requests
 import json
 import datetime
 
+
 class SerialInterface:
     def __init__(self, root):
         self.root = root
@@ -31,48 +32,81 @@ class SerialInterface:
             self.abrir_puerto()
 
     def create_medicion_tab(self):
+        
+        self.sku_var = tk.StringVar()
+        self.length_var = tk.StringVar()
+        self.width_var = tk.StringVar()
+        self.height_var = tk.StringVar()
+        self.weight_var = tk.StringVar()
+        self.response_text = tk.StringVar()
+        
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.sku_entry = ttk.Entry(self.medicion_tab)
+        self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var)
         self.sku_entry.grid(row=0, column=1, padx=10, pady=5)
 
         ttk.Label(self.medicion_tab, text="Largo:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        self.largo_entry = ttk.Entry(self.medicion_tab)
+        self.largo_entry = ttk.Entry(self.medicion_tab, textvariable=self.length_var)
         self.largo_entry.grid(row=1, column=1, padx=10, pady=5)
 
         ttk.Label(self.medicion_tab, text="Ancho:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
-        self.ancho_entry = ttk.Entry(self.medicion_tab)
+        self.ancho_entry = ttk.Entry(self.medicion_tab, textvariable=self.width_var)
         self.ancho_entry.grid(row=2, column=1, padx=10, pady=5)
 
         ttk.Label(self.medicion_tab, text="Alto:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
-        self.alto_entry = ttk.Entry(self.medicion_tab)
+        self.alto_entry = ttk.Entry(self.medicion_tab, textvariable=self.height_var)
         self.alto_entry.grid(row=3, column=1, padx=10, pady=5)
 
         ttk.Label(self.medicion_tab, text="Peso:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
-        self.peso_entry = ttk.Entry(self.medicion_tab)
+        self.peso_entry = ttk.Entry(self.medicion_tab, textvariable=self.weight_var)
         self.peso_entry.grid(row=4, column=1, padx=10, pady=5)
 
         self.medir_button = ttk.Button(self.medicion_tab, text="Medir", command=self.enviar_trama)
         self.medir_button.grid(row=5, columnspan=2, padx=10, pady=5)
+        
+        self.send_button = ttk.Button(self.medicion_tab, text="Enviar", command=self.send_data)
+        self.send_button.grid(row=6, columnspan=2, padx=10, pady=5)
+
+        ttk.Label(self.medicion_tab, text="Respuesta:").grid(row=7, columnspan=2, padx=10, pady=5)
+        self.response_entry = ttk.Entry(self.medicion_tab, textvariable=self.response_text, state="readonly")
+        self.response_entry.grid(row=7, columnspan=2, padx=10, pady=5)
 
         
     def create_configuracion_tab(self):
-        self.label = ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:")
-        self.label.pack(padx=10, pady=10)
+        
+        self.url_var = tk.StringVar()
+        self.username_var = tk.StringVar()
+        self.password_var = tk.StringVar()
+        self.machine_name_var = tk.StringVar()
 
+        ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var)
+        url_entry.grid(row=0, column=1, padx=10, pady=5, sticky="w")
+
+        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var)
+        username_entry.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+
+        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password_var, show="*")
+        password_entry.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+
+        ttk.Label(self.configuracion_tab, text="Nombre de la Máquina:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        machine_name_entry = ttk.Entry(self.configuracion_tab, textvariable=self.machine_name_var)
+        machine_name_entry.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
         self.puertos_combobox = ttk.Combobox(self.configuracion_tab)
-        self.puertos_combobox.pack(padx=10, pady=5)
+        self.puertos_combobox.grid(row=4, column=1, padx=10, pady=5)
 
         self.actualizar_puertos_button = ttk.Button(self.configuracion_tab, text="Actualizar puertos", command=self.listar_puertos)
-        self.actualizar_puertos_button.pack(padx=10, pady=5)
+        self.actualizar_puertos_button.grid(row=4, column=2, padx=10, pady=5)
 
         self.abrir_puerto_button = ttk.Button(self.configuracion_tab, text="Abrir Puerto", command=self.abrir_puerto)
-        self.abrir_puerto_button.pack(padx=10, pady=5)
+        self.abrir_puerto_button.grid(row=5, column=1, padx=10, pady=5)
 
         self.cerrar_puerto_button = ttk.Button(self.configuracion_tab, text="Cerrar Puerto", command=self.cerrar_puerto)
-        self.cerrar_puerto_button.pack(padx=10, pady=5)
+        self.cerrar_puerto_button.grid(row=6, column=1, padx=10, pady=5)
         self.cerrar_puerto_button.configure(state="disabled")
-
-
 
         
     def on_enter_press(self, event):
@@ -159,6 +193,28 @@ class SerialInterface:
             self.puerto_serial.write(trama)
         except Exception as e:
             print("Error al enviar la trama:", e)  
+    
+    def send_data(self):
+        # Construir el JSON con los datos ingresados
+        data = {
+            "machine_pid": self.machine_name_var.get(),
+            "code": self.sku_var.get(),
+            "measure_date": datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+            "length": self.length_var.get(),
+            "width": self.width_var.get(),
+            "height": self.height_var.get(),
+            "weight": self.weight_var.get(),
+            "unit_type": "cm"
+        }
+
+        # Realizar la solicitud POST al WebService
+        url = self.url_var.get()
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, data=json.dumps(data), headers=headers, auth=(self.username_var.get(), self.password_var.get()))
+
+        # Actualizar la respuesta en la interfaz
+        self.response_text.set(response.text)
+            
 
 if __name__ == "__main__":
     root = tk.Tk()
