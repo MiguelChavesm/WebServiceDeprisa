@@ -9,6 +9,7 @@ class SerialInterface:
         self.root = root
         self.root.title("Comunicación Serial")
         
+        
         self.label = ttk.Label(root, text="Puertos COM disponibles:")
         self.label.pack(padx=10, pady=10)
 
@@ -34,6 +35,27 @@ class SerialInterface:
 
         self.is_button_focused = False
         
+        # Agregar etiquetas y campos de entrada para SKU, Largo, Ancho, Alto y Peso
+        ttk.Label(root, text="SKU:").pack(padx=10, pady=5)
+        self.sku_entry = ttk.Entry(root)
+        self.sku_entry.pack(padx=10, pady=5)
+        
+        ttk.Label(root, text="Largo:").pack(padx=10, pady=5)
+        self.largo_entry = ttk.Entry(root)
+        self.largo_entry.pack(padx=10, pady=5)
+        
+        ttk.Label(root, text="Ancho:").pack(padx=10, pady=5)
+        self.ancho_entry = ttk.Entry(root)
+        self.ancho_entry.pack(padx=10, pady=5)
+        
+        ttk.Label(root, text="Alto:").pack(padx=10, pady=5)
+        self.alto_entry = ttk.Entry(root)
+        self.alto_entry.pack(padx=10, pady=5)
+        
+        ttk.Label(root, text="Peso:").pack(padx=10, pady=5)
+        self.peso_entry = ttk.Entry(root)
+        self.peso_entry.pack(padx=10, pady=5)
+                
         self.datos_received_text = tk.Text(root)
         self.datos_received_text.pack(padx=10, pady=10)
         
@@ -43,6 +65,8 @@ class SerialInterface:
             self.puertos_combobox.set(puertos_disponibles[0])  # Establecer el único puerto automáticamente
             self.abrir_puerto()  # Abrir automáticamente el puerto
 
+
+        
     def on_enter_press(self, event):
         if self.is_button_focused:
             self.enviar_trama()
@@ -72,7 +96,6 @@ class SerialInterface:
 
             messagebox.showerror("Error", mensaje)
 
-
     def cerrar_puerto(self):
         if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
             self.puerto_serial.close()
@@ -87,10 +110,35 @@ class SerialInterface:
                 dato = self.puerto_serial.readline().decode('utf-8')
                 self.datos_received_text.insert(tk.END, dato)
                 self.datos_received_text.see(tk.END)  # Hacer scroll para mostrar los nuevos datos
+                
+                # Procesar la trama recibida para obtener los valores de Largo, Ancho, Alto y Peso
+                if "\x02" in dato and "\x03" in dato:
+                    trama = dato.split("\x02")[1].split("\x03")[0]
+                    valores = trama.split(",")
+                    
+                    for valor in valores:
+                        if valor.startswith("L"):
+                            largo = valor.split("L")[1]
+                            largo = round(float(largo))  # Convertir a número, redondear y luego a entero
+                            self.largo_entry.delete(0, tk.END)
+                            self.largo_entry.insert(0, str(largo))
+                        elif valor.startswith("W"):
+                            ancho = valor.split("W")[1]
+                            ancho = round(float(ancho))  # Convertir a número, redondear y luego a entero
+                            self.ancho_entry.delete(0, tk.END)
+                            self.ancho_entry.insert(0, str(ancho))
+                        elif valor.startswith("H"):
+                            alto = valor.split("H")[1]
+                            alto = round(float(alto))  # Convertir a número, redondear y luego a entero
+                            self.alto_entry.delete(0, tk.END)
+                            self.alto_entry.insert(0, str(alto))
+                        elif valor.startswith("K"):
+                            peso = valor.split("K")[1]
+                            peso = float(peso)
+                            self.peso_entry.delete(0, tk.END)
+                            self.peso_entry.insert(0, peso)
             except:
                 pass
-
-
 
     def enviar_trama(self):
         if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
@@ -103,9 +151,6 @@ class SerialInterface:
             self.puerto_serial.write(trama)
         except Exception as e:
             print("Error al enviar la trama:", e)  
-
-
-            
 
 if __name__ == "__main__":
     root = tk.Tk()
