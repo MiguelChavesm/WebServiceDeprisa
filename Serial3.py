@@ -56,8 +56,8 @@ class SerialInterface:
         self.peso_entry = ttk.Entry(root)
         self.peso_entry.pack(padx=10, pady=5)
                 
-        self.datos_received_text = tk.Text(root)
-        self.datos_received_text.pack(padx=10, pady=10)
+        #self.datos_received_text = tk.Text(root)
+        #self.datos_received_text.pack(padx=10, pady=10)
         
         self.listar_puertos()
         puertos_disponibles = [p for p in self.puertos_combobox['values'] if p]  # Filtrar puertos no vacíos
@@ -108,8 +108,8 @@ class SerialInterface:
         while hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
             try:
                 dato = self.puerto_serial.readline().decode('utf-8')
-                self.datos_received_text.insert(tk.END, dato)
-                self.datos_received_text.see(tk.END)  # Hacer scroll para mostrar los nuevos datos
+                #self.datos_received_text.insert(tk.END, dato)
+                #self.datos_received_text.see(tk.END)  # Hacer scroll para mostrar los nuevos datos
                 
                 # Procesar la trama recibida para obtener los valores de Largo, Ancho, Alto y Peso
                 if "\x02" in dato and "\x03" in dato:
