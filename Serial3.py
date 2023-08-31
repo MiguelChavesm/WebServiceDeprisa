@@ -1,12 +1,12 @@
 import serial
 import serial.tools.list_ports
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, simpledialog
 import threading
 import requests
 import json
 import datetime
-
+import configparser
 
 class SerialInterface:
     def __init__(self, root):
@@ -15,21 +15,74 @@ class SerialInterface:
         
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
-        
         self.medicion_tab = ttk.Frame(self.notebook)
         self.configuracion_tab = ttk.Frame(self.notebook)
-        
         self.notebook.add(self.medicion_tab, text="Medición")
         self.notebook.add(self.configuracion_tab, text="Configuración")
         
         self.create_medicion_tab()
         self.create_configuracion_tab()
         
+        self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
+        
+        self.cargar_configuracion()
+        
         self.listar_puertos()
         puertos_disponibles = [p for p in self.puertos_combobox['values'] if p]
         if len(puertos_disponibles) == 1:
             self.puertos_combobox.set(puertos_disponibles[0])
             self.abrir_puerto()
+            
+        # Añadir la protección por contraseña a la pestaña de configuración
+        self.notebook.bind("<<NotebookTabChanged>>", self.verificar_contraseña)
+
+    def verificar_contraseña(self, event):
+        if self.notebook.tab(self.notebook.select(), "text") == "Configuración":
+            password = simpledialog.askstring("Contraseña", "Ingrese la contraseña:")
+            if password != "MONTRA101":  # Reemplaza "tu_contraseña_aqui" con la contraseña real
+                self.notebook.select(self.medicion_tab)
+                self.show_configuracion_message()
+    
+    def show_configuracion_message(self):
+        messagebox.showerror("Acceso denegado", "La contraseña ingresada es incorrecta. Acceso denegado a la pestaña de configuración.")
+    
+    def cerrar_aplicacion(self):
+        if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
+            self.cerrar_puerto()  # Cerrar el puerto si está abierto
+        self.guardar_configuracion()  # Guardar la configuración antes de salir
+        self.root.destroy()  # Cerrar la aplicación
+
+    def cargar_configuracion(self):
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        if 'Configuracion' in config:
+            self.url_var.set(config['Configuracion'].get('url', ''))
+            self.username_var.set(config['Configuracion'].get('username', ''))
+            self.password_var.set(config['Configuracion'].get('password', ''))
+            self.machine_name_var.set(config['Configuracion'].get('machine_name', ''))
+            # Cargar y establecer el último puerto en el combobox
+            ultimo_puerto = config['Configuracion'].get('ultimo_puerto', '')
+            self.puertos_combobox.set(ultimo_puerto)
+            self.abrir_puerto()
+            
+            
+    def guardar_configuracion(self):
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        
+        # Guardar los valores de configuración
+        config['Configuracion']['url'] = self.url_var.get()
+        config['Configuracion']['username'] = self.username_var.get()
+        config['Configuracion']['password'] = self.password_var.get()
+        config['Configuracion']['machine_name'] = self.machine_name_var.get()
+        # Obtener el último puerto seleccionado del combobox
+        ultimo_puerto = self.puertos_combobox.get()
+        config['Configuracion']['ultimo_puerto'] = ultimo_puerto
+        
+            
+        with open('config.ini', 'w') as configfile:
+            config.write(configfile)
+
 
     def create_medicion_tab(self):
         
@@ -69,10 +122,8 @@ class SerialInterface:
         ttk.Label(self.medicion_tab, text="Respuesta:").grid(row=7, columnspan=2, padx=10, pady=5)
         self.response_entry = ttk.Entry(self.medicion_tab, textvariable=self.response_text, state="readonly")
         self.response_entry.grid(row=7, columnspan=2, padx=10, pady=5)
-
         
     def create_configuracion_tab(self):
-        
         self.url_var = tk.StringVar()
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
@@ -107,7 +158,10 @@ class SerialInterface:
         self.cerrar_puerto_button = ttk.Button(self.configuracion_tab, text="Cerrar Puerto", command=self.cerrar_puerto)
         self.cerrar_puerto_button.grid(row=6, column=1, padx=10, pady=5)
         self.cerrar_puerto_button.configure(state="disabled")
-
+        
+        self.guardar_config_button = ttk.Button(self.configuracion_tab, text="Guardar Configuración", command=self.guardar_configuracion)
+        self.guardar_config_button.grid(row=7, columnspan=2, padx=10, pady=5)
+        
         
     def on_enter_press(self, event):
         if self.is_button_focused:
@@ -127,9 +181,13 @@ class SerialInterface:
         puerto_seleccionado = self.puertos_combobox.get()
         try:
             self.puerto_serial = serial.Serial(puerto_seleccionado, baudrate=9600)
-            self.puertos_combobox.configure(state="disabled")  # Bloquear el combobox
+            self.puertos_combobox.configure(state="disabled")
             self.abrir_puerto_button.configure(state="disabled")
             self.cerrar_puerto_button.configure(state="enabled")
+
+            # Guardar el último puerto en el archivo config.ini
+            self.guardar_configuracion()
+            
             self.data_thread = threading.Thread(target=self.leer_datos)
             self.data_thread.start()
         except Exception as e:
@@ -144,8 +202,8 @@ class SerialInterface:
             self.abrir_puerto_button.configure(state="enabled")
             self.cerrar_puerto_button.configure(state="disabled")
 
-    
-    
+
+
     def leer_datos(self):
         while hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
             try:
