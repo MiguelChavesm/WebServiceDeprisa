@@ -6,7 +6,7 @@ import threading
 import requests
 import json
 import datetime
-
+import configparser
 
 class SerialInterface:
     def __init__(self, root):
@@ -25,11 +25,33 @@ class SerialInterface:
         self.create_medicion_tab()
         self.create_configuracion_tab()
         
+        
         self.listar_puertos()
         puertos_disponibles = [p for p in self.puertos_combobox['values'] if p]
         if len(puertos_disponibles) == 1:
             self.puertos_combobox.set(puertos_disponibles[0])
             self.abrir_puerto()
+        
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        if 'Configuracion' in config:
+            self.url_var.set(config['Configuracion'].get('url', ''))
+            self.username_var.set(config['Configuracion'].get('username', ''))
+            self.password_var.set(config['Configuracion'].get('password', ''))
+            self.machine_name_var.set(config['Configuracion'].get('machine_name', ''))
+            
+    def guardar_configuracion(self):
+        config = configparser.ConfigParser()
+        config['Configuracion'] = {
+            'url': self.url_var.get(),
+            'username': self.username_var.get(),
+            'password': self.password_var.get(),
+            'machine_name': self.machine_name_var.get()
+        }
+            
+        with open('config.ini', 'w') as configfile:
+            config.write(configfile)
+
 
     def create_medicion_tab(self):
         
@@ -107,7 +129,9 @@ class SerialInterface:
         self.cerrar_puerto_button = ttk.Button(self.configuracion_tab, text="Cerrar Puerto", command=self.cerrar_puerto)
         self.cerrar_puerto_button.grid(row=6, column=1, padx=10, pady=5)
         self.cerrar_puerto_button.configure(state="disabled")
-
+        
+        self.guardar_config_button = ttk.Button(self.configuracion_tab, text="Guardar Configuración", command=self.guardar_configuracion)
+        self.guardar_config_button.grid(row=7, columnspan=2, padx=10, pady=5)
         
     def on_enter_press(self, event):
         if self.is_button_focused:
@@ -144,8 +168,8 @@ class SerialInterface:
             self.abrir_puerto_button.configure(state="enabled")
             self.cerrar_puerto_button.configure(state="disabled")
 
-    
-    
+
+
     def leer_datos(self):
         while hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
             try:
