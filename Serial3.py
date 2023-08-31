@@ -3,67 +3,75 @@ import serial.tools.list_ports
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
+import requests
+import json
+import datetime
 
 class SerialInterface:
     def __init__(self, root):
         self.root = root
         self.root.title("Comunicación Serial")
         
+        self.notebook = ttk.Notebook(root)
+        self.notebook.pack(fill="both", expand=True)
         
-        self.label = ttk.Label(root, text="Puertos COM disponibles:")
-        self.label.pack(padx=10, pady=10)
-
-        self.puertos_combobox = ttk.Combobox(root)
-        self.puertos_combobox.pack(padx=10, pady=5)
-
-        self.actualizar_puertos_button = ttk.Button(root, text="Actualizar puertos", command=self.listar_puertos)
-        self.actualizar_puertos_button.pack(padx=10, pady=5)
-
-        self.abrir_puerto_button = ttk.Button(root, text="Abrir Puerto", command=self.abrir_puerto)
-        self.abrir_puerto_button.pack(padx=10, pady=5)
-
-        self.cerrar_puerto_button = ttk.Button(root, text="Cerrar Puerto", command=self.cerrar_puerto)
-        self.cerrar_puerto_button.pack(padx=10, pady=5)
-        self.cerrar_puerto_button.configure(state="disabled")
+        self.medicion_tab = ttk.Frame(self.notebook)
+        self.configuracion_tab = ttk.Frame(self.notebook)
         
-        self.medir_button = ttk.Button(root, text="Medir", command=self.enviar_trama)
-        self.medir_button.pack(padx=10, pady=5)
-
-        self.medir_button.bind('<Return>', self.on_enter_press)
-        self.medir_button.bind('<FocusIn>', self.on_button_focus_in)
-        self.medir_button.bind('<FocusOut>', self.on_button_focus_out)
-
-        self.is_button_focused = False
+        self.notebook.add(self.medicion_tab, text="Medición")
+        self.notebook.add(self.configuracion_tab, text="Configuración")
         
-        # Agregar etiquetas y campos de entrada para SKU, Largo, Ancho, Alto y Peso
-        ttk.Label(root, text="SKU:").pack(padx=10, pady=5)
-        self.sku_entry = ttk.Entry(root)
-        self.sku_entry.pack(padx=10, pady=5)
-        
-        ttk.Label(root, text="Largo:").pack(padx=10, pady=5)
-        self.largo_entry = ttk.Entry(root)
-        self.largo_entry.pack(padx=10, pady=5)
-        
-        ttk.Label(root, text="Ancho:").pack(padx=10, pady=5)
-        self.ancho_entry = ttk.Entry(root)
-        self.ancho_entry.pack(padx=10, pady=5)
-        
-        ttk.Label(root, text="Alto:").pack(padx=10, pady=5)
-        self.alto_entry = ttk.Entry(root)
-        self.alto_entry.pack(padx=10, pady=5)
-        
-        ttk.Label(root, text="Peso:").pack(padx=10, pady=5)
-        self.peso_entry = ttk.Entry(root)
-        self.peso_entry.pack(padx=10, pady=5)
-                
-        #self.datos_received_text = tk.Text(root)
-        #self.datos_received_text.pack(padx=10, pady=10)
+        self.create_medicion_tab()
+        self.create_configuracion_tab()
         
         self.listar_puertos()
-        puertos_disponibles = [p for p in self.puertos_combobox['values'] if p]  # Filtrar puertos no vacíos
-        if len(puertos_disponibles) == 1:  # Si solo hay un puerto no vacío
-            self.puertos_combobox.set(puertos_disponibles[0])  # Establecer el único puerto automáticamente
-            self.abrir_puerto()  # Abrir automáticamente el puerto
+        puertos_disponibles = [p for p in self.puertos_combobox['values'] if p]
+        if len(puertos_disponibles) == 1:
+            self.puertos_combobox.set(puertos_disponibles[0])
+            self.abrir_puerto()
+
+    def create_medicion_tab(self):
+        ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.sku_entry = ttk.Entry(self.medicion_tab)
+        self.sku_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        ttk.Label(self.medicion_tab, text="Largo:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.largo_entry = ttk.Entry(self.medicion_tab)
+        self.largo_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        ttk.Label(self.medicion_tab, text="Ancho:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.ancho_entry = ttk.Entry(self.medicion_tab)
+        self.ancho_entry.grid(row=2, column=1, padx=10, pady=5)
+
+        ttk.Label(self.medicion_tab, text="Alto:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        self.alto_entry = ttk.Entry(self.medicion_tab)
+        self.alto_entry.grid(row=3, column=1, padx=10, pady=5)
+
+        ttk.Label(self.medicion_tab, text="Peso:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        self.peso_entry = ttk.Entry(self.medicion_tab)
+        self.peso_entry.grid(row=4, column=1, padx=10, pady=5)
+
+        self.medir_button = ttk.Button(self.medicion_tab, text="Medir", command=self.enviar_trama)
+        self.medir_button.grid(row=5, columnspan=2, padx=10, pady=5)
+
+        
+    def create_configuracion_tab(self):
+        self.label = ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:")
+        self.label.pack(padx=10, pady=10)
+
+        self.puertos_combobox = ttk.Combobox(self.configuracion_tab)
+        self.puertos_combobox.pack(padx=10, pady=5)
+
+        self.actualizar_puertos_button = ttk.Button(self.configuracion_tab, text="Actualizar puertos", command=self.listar_puertos)
+        self.actualizar_puertos_button.pack(padx=10, pady=5)
+
+        self.abrir_puerto_button = ttk.Button(self.configuracion_tab, text="Abrir Puerto", command=self.abrir_puerto)
+        self.abrir_puerto_button.pack(padx=10, pady=5)
+
+        self.cerrar_puerto_button = ttk.Button(self.configuracion_tab, text="Cerrar Puerto", command=self.cerrar_puerto)
+        self.cerrar_puerto_button.pack(padx=10, pady=5)
+        self.cerrar_puerto_button.configure(state="disabled")
+
 
 
         
@@ -85,23 +93,23 @@ class SerialInterface:
         puerto_seleccionado = self.puertos_combobox.get()
         try:
             self.puerto_serial = serial.Serial(puerto_seleccionado, baudrate=9600)
+            self.puertos_combobox.configure(state="disabled")  # Bloquear el combobox
             self.abrir_puerto_button.configure(state="disabled")
             self.cerrar_puerto_button.configure(state="enabled")
             self.data_thread = threading.Thread(target=self.leer_datos)
             self.data_thread.start()
         except Exception as e:
-            #mensaje = "Error al abrir el puerto, no se encuentra o ya está abierto en otro programa"
             mensaje = f"Error al abrir el puerto: {e}"
-            messagebox.showerror("Error", mensaje)
-
             messagebox.showerror("Error", mensaje)
 
     def cerrar_puerto(self):
         if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
             self.puerto_serial.close()
             self.puerto_serial = None
+            self.puertos_combobox.configure(state="readonly")  # Desbloquear el combobox
             self.abrir_puerto_button.configure(state="enabled")
             self.cerrar_puerto_button.configure(state="disabled")
+
     
     
     def leer_datos(self):
@@ -119,17 +127,17 @@ class SerialInterface:
                     for valor in valores:
                         if valor.startswith("L"):
                             largo = valor.split("L")[1]
-                            largo = round(float(largo))  # Convertir a número, redondear y luego a entero
+                            largo = round(float(largo))  # Convertir a número, redondear
                             self.largo_entry.delete(0, tk.END)
                             self.largo_entry.insert(0, str(largo))
                         elif valor.startswith("W"):
                             ancho = valor.split("W")[1]
-                            ancho = round(float(ancho))  # Convertir a número, redondear y luego a entero
+                            ancho = round(float(ancho))  # Convertir a número, redondear
                             self.ancho_entry.delete(0, tk.END)
                             self.ancho_entry.insert(0, str(ancho))
                         elif valor.startswith("H"):
                             alto = valor.split("H")[1]
-                            alto = round(float(alto))  # Convertir a número, redondear y luego a entero
+                            alto = round(float(alto))  # Convertir a número, redondear
                             self.alto_entry.delete(0, tk.END)
                             self.alto_entry.insert(0, str(alto))
                         elif valor.startswith("K"):
