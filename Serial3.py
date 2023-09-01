@@ -8,6 +8,9 @@ import json
 import datetime
 import configparser
 
+paquetes_enviados = 0
+paquetes_no_enviados = 0
+
 class SerialInterface:
     def __init__(self, root):
         self.root = root
@@ -94,7 +97,19 @@ class SerialInterface:
         self.height_var = tk.StringVar()
         self.weight_var = tk.StringVar()
         self.response_text = tk.StringVar()
-        
+
+        #Etiquetas del contador
+        self.paquetes_enviados_label = tk.Label(
+            self.medicion_tab, text="paquetes enviados: 0", font=("verdama", 10)
+        )
+        self.paquetes_enviados_label.grid(row=0, column=2)
+
+        self.paquetes_no_enviados_label = tk.Label(
+            self.medicion_tab, text="paquetes con mala respuesta: 0", font=("Verdana", 10)
+        )
+        self.paquetes_no_enviados_label.grid(row=1,column=2)
+
+        self.paquetes_no_enviados_label.grid(row=1, column=2)        
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var)
         self.sku_entry.grid(row=0, column=1, padx=10, pady=5)
@@ -125,6 +140,12 @@ class SerialInterface:
         self.response_entry = ttk.Entry(self.medicion_tab, textvariable=self.response_text, state="readonly")
         self.response_entry.grid(row=7, columnspan=2, padx=10, pady=5)
         
+        
+    def update_contadores(self):
+        self.paquetes_enviados_label.config(text=f"paquetes enviados: {paquetes_enviados}")
+        self.paquetes_no_enviados_label.config(text=f"paquetes con mala respuesta: {paquetes_no_enviados}")
+
+
     def create_configuracion_tab(self):
 
         
@@ -165,7 +186,7 @@ class SerialInterface:
         
         self.guardar_config_button = ttk.Button(self.configuracion_tab, text="Guardar Configuración", command=self.guardar_configuracion)
         self.guardar_config_button.grid(row=7, columnspan=2, padx=10, pady=5)
-    
+   
         
     def on_enter_press(self, event):
         if self.is_button_focused:
@@ -255,8 +276,13 @@ class SerialInterface:
             self.puerto_serial.write(trama)
         except Exception as e:
             print("Error al enviar la trama:", e)  
+
+        
     
     def send_data(self):
+        global paquetes_enviados
+        global paquetes_no_enviados
+
         # Construir el JSON con los datos ingresados
         data = {
             "machine_pid": self.machine_name_var.get(),
@@ -274,8 +300,16 @@ class SerialInterface:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, data=json.dumps(data), headers=headers, auth=(self.username_var.get(), self.password_var.get()))
 
+#contador
+        if response.status_code == 200:
+            paquetes_enviados += 1
+        else:
+            paquetes_no_enviados += 1
+
         # Actualizar la respuesta en la interfaz
         self.response_text.set(response.text)
+        #actualizar contadores
+        self.update_contadores()
             
 
 if __name__ == "__main__":
