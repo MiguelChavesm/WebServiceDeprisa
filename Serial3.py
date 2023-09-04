@@ -38,21 +38,19 @@ class SerialInterface:
             
         # Añadir la protección por contraseña a la pestaña de configuración
         self.notebook.bind("<<NotebookTabChanged>>", self.verificar_contraseña)
-        
 
     def verificar_contraseña(self, event):
         if self.notebook.tab(self.notebook.select(), "text") == "Configuración":
-            password = simpledialog.askstring("Contraseña", "Ingrese la contraseña:", show="*")
+            password = simpledialog.askstring("Contraseña", "Ingrese la contraseña:")
             if password != "MONTRA101":  # Reemplaza "tu_contraseña_aqui" con la contraseña real
                 self.notebook.select(self.medicion_tab)
                 self.show_configuracion_message()
     
     def show_configuracion_message(self):
         messagebox.showerror("Acceso denegado", "La contraseña ingresada es incorrecta. Acceso denegado a la pestaña de configuración.")
-
-
+    
     def cerrar_aplicacion(self):
-        if hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
+        if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
             self.cerrar_puerto()  # Cerrar el puerto si está abierto
         self.guardar_configuracion()  # Guardar la configuración antes de salir
         self.root.destroy()  # Cerrar la aplicación
@@ -90,7 +88,7 @@ class SerialInterface:
 
 
     def create_medicion_tab(self):
-            
+        
         self.sku_var = tk.StringVar()
         self.length_var = tk.StringVar()
         self.width_var = tk.StringVar()
@@ -147,19 +145,17 @@ class SerialInterface:
 
 
     def create_configuracion_tab(self):
-
-        
         self.url_var = tk.StringVar()
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
         self.machine_name_var = tk.StringVar()
 
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*")
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var)
         url_entry.grid(row=0, column=1, padx=10, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var, show="*")
+        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var)
         username_entry.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
@@ -186,7 +182,10 @@ class SerialInterface:
         
         self.guardar_config_button = ttk.Button(self.configuracion_tab, text="Guardar Configuración", command=self.guardar_configuracion)
         self.guardar_config_button.grid(row=7, columnspan=2, padx=10, pady=5)
-   
+    
+    def send_data():
+        global paquetes_enviados
+        global paquetes_no_enviados
         
     def on_enter_press(self, event):
         if self.is_button_focused:
@@ -283,6 +282,12 @@ class SerialInterface:
         global paquetes_enviados
         global paquetes_no_enviados
 
+        # Obtener los valores de los campos
+        sku = self.sku_var.get()
+        largo = self.length_var.get()
+        ancho = self.width_var.get()
+        alto = self.height_var.get()
+
         # Construir el JSON con los datos ingresados
         data = {
             "machine_pid": self.machine_name_var.get(),
@@ -294,6 +299,17 @@ class SerialInterface:
             "weight": self.weight_var.get(),
             "unit_type": "cm"
         }
+
+        # Obtener los valores de los campos
+        sku = self.sku_var.get()
+        largo = self.length_var.get()
+        ancho = self.width_var.get()
+        alto = self.height_var.get()
+
+    # Verificar si alguno de los campos está en 0
+        if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' and sku == "" or largo == "" or alto == "" or ancho == "":
+            messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
+            return  # No se envía la información si algún campo es 0
 
         # Realizar la solicitud POST al WebService
         url = self.url_var.get()
