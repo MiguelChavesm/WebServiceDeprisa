@@ -154,13 +154,24 @@ class SerialInterface:
         self.paquetes_no_enviados_label = tk.Label(self.medicion_tab, text="Envíos fallidos: 0", font=("Verdana", 10))
         self.paquetes_no_enviados_label.grid(row=4,column=1)
         
+        self.medir_button.bind('<Return>', self.on_enter_press)
+        self.medir_button.bind('<FocusIn>', self.on_button_focus_in)
+        self.medir_button.bind('<FocusOut>', self.on_button_focus_out)
+        
+        self.send_button.bind('<Return>', self.on_enter_press)
+        self.send_button.bind('<FocusIn>', self.on_sendbutton_focus_in)
+        self.send_button.bind('<FocusOut>', self.on_sendbutton_focus_out)
+        
+        self.sku_entry.bind("<Return>", self.cambiar_foco_a_medir)
+
+
     def update_contadores(self):
         self.paquetes_enviados_label.config(text=f"Envíos exitosos: {paquetes_enviados}")
         self.paquetes_no_enviados_label.config(text=f"Envíos fallidos: {paquetes_no_enviados}")
 
 
     def create_configuracion_tab(self):
-        
+
         self.url_var = tk.StringVar()
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
@@ -169,7 +180,6 @@ class SerialInterface:
         # Botón para cambiar la contraseña
         cambiar_contraseña_button = ttk.Button(self.configuracion_tab, text="Cambiar Contraseña", command=self.abrir_ventana_cambio_contraseña)
         cambiar_contraseña_button.grid(row=8, columnspan=2, padx=10, pady=5)
-
 
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*")
@@ -204,15 +214,29 @@ class SerialInterface:
         self.guardar_config_button = ttk.Button(self.configuracion_tab, text="Guardar Configuración", command=self.guardar_configuracion)
         self.guardar_config_button.grid(row=7, columnspan=2, padx=10, pady=5)
     
+    def cambiar_foco_a_medir(self, event):
+        # Establecer el foco en el botón "Medir"
+        self.medir_button.focus_set()
+    
     def on_enter_press(self, event):
-        if self.is_button_focused:
+        if self.is_medirbutton_focused:
             self.enviar_trama()
+            self.send_button.focus_set()
+        elif self.is_sendbutton_focused:
+            self.send_data()
+            self.sku_entry.focus_set()
 
     def on_button_focus_in(self, event):
-        self.is_button_focused = True
+        self.is_medirbutton_focused = True
 
     def on_button_focus_out(self, event):
-        self.is_button_focused = False
+        self.is_medirbutton_focused = False
+        
+    def on_sendbutton_focus_in(self, event):
+        self.is_sendbutton_focused = True
+
+    def on_sendbutton_focus_out(self, event):
+        self.is_sendbutton_focused = False
 
     def listar_puertos(self):
         puertos = [puerto.device for puerto in serial.tools.list_ports.comports()]
@@ -332,6 +356,7 @@ class SerialInterface:
         #contador
         if response.status_code == 200:
             paquetes_enviados += 1
+            
         else:
             paquetes_no_enviados += 1
 
@@ -345,5 +370,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = SerialInterface(root)
     root.mainloop()
-    
+        
     #Comentario prueba
