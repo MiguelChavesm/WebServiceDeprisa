@@ -74,7 +74,7 @@ class SerialInterface:
                 self.guardar_configuracion()  # Guardar la nueva contraseña en el archivo config.ini
         
     def cerrar_aplicacion(self):
-        if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
+        if hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
             self.cerrar_puerto()  # Cerrar el puerto si está abierto
         self.guardar_configuracion()  # Guardar la configuración antes de salir
         self.root.destroy()  # Cerrar la aplicación
@@ -172,11 +172,11 @@ class SerialInterface:
 
 
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var)
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*")
         url_entry.grid(row=0, column=1, padx=10, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var)
+        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var, show="*")
         username_entry.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
