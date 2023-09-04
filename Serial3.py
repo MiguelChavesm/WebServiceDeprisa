@@ -364,11 +364,16 @@ class SerialInterface:
         self.response_text.set(response.text)
         #actualizar contadores
         self.update_contadores()
+        self.sku_var.set("")     # Borra el contenido del campo SKU
+        self.length_var.set("")  # Borra el contenido del campo Largo
+        self.width_var.set("")   # Borra el contenido del campo Ancho
+        self.height_var.set("")  # Borra el contenido del campo Alto
+        self.weight_var.set("")  # Borra el contenido del campo Peso
+
             
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = SerialInterface(root)
     root.mainloop()
-        
-    #Comentario prueba
+
