@@ -7,6 +7,8 @@ import requests
 import json
 import datetime
 import configparser
+import time
+
 
 paquetes_enviados = 0
 paquetes_no_enviados = 0
@@ -28,6 +30,11 @@ class SerialInterface:
         self.cargar_configuracion()
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
         
+        self.sku_entry.focus_set()
+
+        self.tiempo_espera = 2  # Tiempo en segundos para esperar la recepción de datos
+        self.datos_recibidos = False  # Agrega esta línea para inicializar la variable
+
         """self.listar_puertos()
         puertos_disponibles = [p for p in self.puertos_combobox['values'] if p]
         if len(puertos_disponibles) == 1:
@@ -66,8 +73,7 @@ class SerialInterface:
     def guardar_nueva_contraseña(self, contraseña_actual, nueva_contraseña, window):
         if contraseña_actual != self.contraseña_actual:
             messagebox.showerror("Error", "La contraseña actual es incorrecta.")
-        else:
-            if nueva_contraseña:
+        elif nueva_contraseña:
                 self.contraseña_actual = nueva_contraseña
                 messagebox.showinfo("Contraseña Cambiada", "La contraseña ha sido cambiada con éxito.")
                 window.destroy()
@@ -164,7 +170,6 @@ class SerialInterface:
         
         self.sku_entry.bind("<Return>", self.cambiar_foco_a_medir)
 
-
     def update_contadores(self):
         self.paquetes_enviados_label.config(text=f"Envíos exitosos: {paquetes_enviados}")
         self.paquetes_no_enviados_label.config(text=f"Envíos fallidos: {paquetes_no_enviados}")
@@ -221,11 +226,9 @@ class SerialInterface:
     def on_enter_press(self, event):
         if self.is_medirbutton_focused:
             self.enviar_trama()
-            self.send_button.focus_set()
         elif self.is_sendbutton_focused:
             self.send_data()
-            self.sku_entry.focus_set()
-
+            
     def on_button_focus_in(self, event):
         self.is_medirbutton_focused = True
 
@@ -271,40 +274,65 @@ class SerialInterface:
         while hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
             try:
                 dato = self.puerto_serial.readline().decode('utf-8')
-                #self.datos_received_text.insert(tk.END, dato)
-                #self.datos_received_text.see(tk.END)  # Hacer scroll para mostrar los nuevos datos
-                
-                # Procesar la trama recibida para obtener los valores de Largo, Ancho, Alto y Peso
-                if "\x02" in dato and "\x03" in dato:
-                    trama = dato.split("\x02")[1].split("\x03")[0]
-                    valores = trama.split(",")
-                    
-                    for valor in valores:
-                        if valor.startswith("L"):
-                            largo = valor.split("L")[1]
-                            largo = round(float(largo))  # Convertir a número, redondear
-                            self.largo_entry.delete(0, tk.END)
-                            self.largo_entry.insert(0, str(largo))
-                        elif valor.startswith("W"):
-                            ancho = valor.split("W")[1]
-                            ancho = round(float(ancho))  # Convertir a número, redondear
-                            self.ancho_entry.delete(0, tk.END)
-                            self.ancho_entry.insert(0, str(ancho))
-                        elif valor.startswith("H"):
-                            alto = valor.split("H")[1]
-                            alto = round(float(alto))  # Convertir a número, redondear
-                            self.alto_entry.delete(0, tk.END)
-                            self.alto_entry.insert(0, str(alto))
-                        elif valor.startswith("K"):
-                            peso = valor.split("K")[1]
-                            peso = float(peso)
-                            self.peso_entry.delete(0, tk.END)
-                            self.peso_entry.insert(0, peso)
+                if dato:
+                    self.datos_recibidos = True  # Datos recibidos, detener temporizador
+                    if "\x02" in dato and "\x03" in dato:
+                        trama = dato.split("\x02")[1].split("\x03")[0]
+                        valores = trama.split(",")                        
+                        for valor in valores:
+                            if valor.startswith("L"):
+                                largo = valor.split("L")[1]
+                                largo = round(float(largo))  # Convertir a número, redondear
+                                self.largo_entry.delete(0, tk.END)
+                                self.largo_entry.insert(0, str(largo))
+                            elif valor.startswith("W"):
+                                ancho = valor.split("W")[1]
+                                ancho = round(float(ancho))  # Convertir a número, redondear
+                                self.ancho_entry.delete(0, tk.END)
+                                self.ancho_entry.insert(0, str(ancho))
+                            elif valor.startswith("H"):
+                                alto = valor.split("H")[1]
+                                alto = round(float(alto))  # Convertir a número, redondear
+                                self.alto_entry.delete(0, tk.END)
+                                self.alto_entry.insert(0, str(alto))
+                            elif valor.startswith("K"):
+                                peso = valor.split("K")[1]
+                                peso = float(peso)
+                                self.peso_entry.delete(0, tk.END)
+                                self.peso_entry.insert(0, peso)
+                    self.verificar_datos_cubiscan()
             except:
                 pass
+    
+    def verificar_datos_cubiscan(self):
+        # Verificar si alguno de los campos está en 0
+        if self.sku_var.get() <= '0' or self.length_var.get() <= '0' or self.width_var.get() <= '0' or self.weight_var.get() <= '0' and self.length_var.get()!= "" or self.width_var.get() == "" or self.height_var.get() == "" or self.weight_var.get() == "":
+            self.medir_button.focus_set()
+            messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
+            return  # No se envía la información si algún campo es 0
+        else:
+            self.send_button.focus_set()
 
+    
+    # Agrega este método para iniciar la espera de datos
+    def iniciar_espera_datos(self):
+        self.datos_recibidos = False
+        self.timer = threading.Timer(self.tiempo_espera, self.mostrar_error_sin_datos)
+        self.timer.start()
+
+    # Agrega este método para mostrar un mensaje de error si no se reciben datos
+    def mostrar_error_sin_datos(self):
+        if not self.datos_recibidos:
+            messagebox.showerror("Error", "No hay comunicación con la CubiScan, revise cables y conexiones.")
+
+    # Agrega este método para detener el temporizador
+    def detener_espera_datos(self):
+        if hasattr(self, 'timer') and self.timer.is_alive():
+            self.timer.cancel()
+    
     def enviar_trama(self):
         if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
+            self.iniciar_espera_datos()  # Iniciar la espera de datos
             trama = b'\x02M\x03\r\n'  # Trama: <STX>M<ETX><CR><LF>
             enviar_thread = threading.Thread(target=self.enviar_trama_thread, args=(trama,))
             enviar_thread.start()
@@ -324,6 +352,7 @@ class SerialInterface:
         largo = self.length_var.get()
         ancho = self.width_var.get()
         alto = self.height_var.get()
+        peso = self.weight_var.get()
 
         # Construir el JSON con los datos ingresados
         data = {
@@ -336,17 +365,19 @@ class SerialInterface:
             "weight": self.weight_var.get(),
             "unit_type": "cm"
         }
-
-        # Obtener los valores de los campos
-        sku = self.sku_var.get()
-        largo = self.length_var.get()
-        ancho = self.width_var.get()
-        alto = self.height_var.get()
-
-    # Verificar si alguno de los campos está en 0
-        if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' and sku == "" or largo == "" or alto == "" or ancho == "":
+        
+        # Verificar si alguno de los campos está en 0
+        if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' or peso <= '0':
+            self.send_button.focus_set()
             messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
             return  # No se envía la información si algún campo es 0
+        elif sku == "" or largo == "" or alto == "" or ancho == "" or peso=="":
+            self.send_button.focus_set()
+            messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
+            return  # No se envía la información si algún campo es 0
+        else:
+            self.sku_entry.focus_set()
+            
 
         # Realizar la solicitud POST al WebService
         url = self.url_var.get()
@@ -359,7 +390,6 @@ class SerialInterface:
             
         else:
             paquetes_no_enviados += 1
-
         # Actualizar la respuesta en la interfaz
         self.response_text.set(response.text)
         #actualizar contadores
@@ -370,7 +400,6 @@ class SerialInterface:
         self.height_var.set("")  # Borra el contenido del campo Alto
         self.weight_var.set("")  # Borra el contenido del campo Peso
 
-            
 
 if __name__ == "__main__":
     root = tk.Tk()
