@@ -37,7 +37,6 @@ class SerialInterface:
         #self.contraseña_actual = "MONTRA101"  # Contraseña predeterminada
         # Añadir la protección por contraseña a la pestaña de configuración
         self.notebook.bind("<<NotebookTabChanged>>", self.verificar_contraseña)
-        
 
     def verificar_contraseña(self, event):
         if self.notebook.tab(self.notebook.select(), "text") == "Configuración":
@@ -110,6 +109,7 @@ class SerialInterface:
             config.write(configfile)
 
     def create_medicion_tab(self):
+        
         self.sku_var = tk.StringVar()
         self.length_var = tk.StringVar()
         self.width_var = tk.StringVar()
@@ -295,6 +295,12 @@ class SerialInterface:
         global paquetes_enviados
         global paquetes_no_enviados
 
+        # Obtener los valores de los campos
+        sku = self.sku_var.get()
+        largo = self.length_var.get()
+        ancho = self.width_var.get()
+        alto = self.height_var.get()
+
         # Construir el JSON con los datos ingresados
         data = {
             "machine_pid": self.machine_name_var.get(),
@@ -306,6 +312,17 @@ class SerialInterface:
             "weight": self.weight_var.get(),
             "unit_type": "cm"
         }
+
+        # Obtener los valores de los campos
+        sku = self.sku_var.get()
+        largo = self.length_var.get()
+        ancho = self.width_var.get()
+        alto = self.height_var.get()
+
+    # Verificar si alguno de los campos está en 0
+        if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' and sku == "" or largo == "" or alto == "" or ancho == "":
+            messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
+            return  # No se envía la información si algún campo es 0
 
         # Realizar la solicitud POST al WebService
         url = self.url_var.get()
