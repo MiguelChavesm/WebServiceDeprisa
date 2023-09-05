@@ -366,22 +366,32 @@ class SerialInterface:
         data = {
             "machine_pid": self.machine_name_var.get(),
             "code": self.sku_var.get(),
-            "measure_date": datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
+            "measure_date": datetime.datetime.now().strftime("%Y-%d-%m %H:%M:%S"),
             "length": self.length_var.get(),
             "width": self.width_var.get(),
             "height": self.height_var.get(),
             "weight": self.weight_var.get(),
             "unit_type": "cm"
         }
+        print(data)
+        # Verificar si alguno de los campos está en 0
+        if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' or peso <= '0':
+            self.send_button.focus_set()
+            messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
+            return  # No se envía la información si algún campo es 0
+        elif sku == "" or largo == "" or alto == "" or ancho == "" or peso=="":
+            self.send_button.focus_set()
 
         # Obtener los valores de los campos
         sku = self.sku_var.get()
         largo = self.length_var.get()
         ancho = self.width_var.get()
         alto = self.height_var.get()
+        
 
     # Verificar si alguno de los campos está en 0
         if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' and sku == "" or largo == "" or alto == "" or ancho == "":
+
             messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
             return  # No se envía la información si algún campo es 0
         else:
@@ -420,3 +430,4 @@ if __name__ == "__main__":
     app = SerialInterface(root)
     root.mainloop()
 
+#Comentario adicional
