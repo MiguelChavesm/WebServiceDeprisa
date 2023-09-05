@@ -428,6 +428,7 @@ class SerialInterface:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.resizable(False,False)
     app = SerialInterface(root)
     root.mainloop()
 
