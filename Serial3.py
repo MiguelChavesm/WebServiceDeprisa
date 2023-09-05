@@ -10,13 +10,10 @@ import configparser
 import time
 
 
-paquetes_enviados = 0
-paquetes_no_enviados = 0
-
 class SerialInterface:
     def __init__(self, root):
         self.root = root
-        self.root.title("Comunicación Serial")
+        self.root.title("Comunicación WebService Deprisa")
         
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
@@ -29,91 +26,16 @@ class SerialInterface:
         self.create_configuracion_tab()
         self.cargar_configuracion()
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
+                
+        self.paquetes_enviados = 0
+        self.paquetes_no_enviados = 0
         
-        self.sku_entry.focus_set()
-
         self.tiempo_espera = 2  # Tiempo en segundos para esperar la recepción de datos
         self.datos_recibidos = False  # Agrega esta línea para inicializar la variable
 
-        """self.listar_puertos()
-        puertos_disponibles = [p for p in self.puertos_combobox['values'] if p]
-        if len(puertos_disponibles) == 1:
-            self.puertos_combobox.set(puertos_disponibles[0])
-            self.abrir_puerto()"""
-            
-        #self.contraseña_actual = "MONTRA101"  # Contraseña predeterminada
-        # Añadir la protección por contraseña a la pestaña de configuración
         self.notebook.bind("<<NotebookTabChanged>>", self.verificar_contraseña)
 
-    def verificar_contraseña(self, event):
-        if self.notebook.tab(self.notebook.select(), "text") == "Configuración":
-            password = simpledialog.askstring("Contraseña", "Ingrese la contraseña:", show="*")
-            if password != self.contraseña_actual:  # Usar la contraseña actual almacenada
-                self.notebook.select(self.medicion_tab)
-                self.show_configuracion_message()
-    
-    def show_configuracion_message(self):
-        messagebox.showerror("Acceso denegado", "La contraseña ingresada es incorrecta. Acceso denegado a la pestaña de configuración.")
-
-    def abrir_ventana_cambio_contraseña(self):
-        # Ventana emergente para cambiar la contraseña
-        cambio_contraseña_window = tk.Toplevel(self.root)
-        cambio_contraseña_window.title("Cambiar Contraseña")
-
-        ttk.Label(cambio_contraseña_window, text="Contraseña Actual:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        contraseña_actual_entry = ttk.Entry(cambio_contraseña_window, show="*")
-        contraseña_actual_entry.grid(row=0, column=1, padx=10, pady=5)
-
-        ttk.Label(cambio_contraseña_window, text="Nueva Contraseña:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        nueva_contraseña_entry = ttk.Entry(cambio_contraseña_window, show="*")
-        nueva_contraseña_entry.grid(row=1, column=1, padx=10, pady=5)
-
-        ttk.Button(cambio_contraseña_window, text="Guardar", command=lambda: self.guardar_nueva_contraseña(contraseña_actual_entry.get(), nueva_contraseña_entry.get(), cambio_contraseña_window)).grid(row=2, columnspan=2, padx=10, pady=5)
-
-    def guardar_nueva_contraseña(self, contraseña_actual, nueva_contraseña, window):
-        if contraseña_actual != self.contraseña_actual:
-            messagebox.showerror("Error", "La contraseña actual es incorrecta.")
-        elif nueva_contraseña:
-                self.contraseña_actual = nueva_contraseña
-                messagebox.showinfo("Contraseña Cambiada", "La contraseña ha sido cambiada con éxito.")
-                window.destroy()
-                self.guardar_configuracion()  # Guardar la nueva contraseña en el archivo config.ini
-        
-    def cerrar_aplicacion(self):
-        if hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
-            self.cerrar_puerto()  # Cerrar el puerto si está abierto
-        self.guardar_configuracion()  # Guardar la configuración antes de salir
-        self.root.destroy()  # Cerrar la aplicación
-
-    def cargar_configuracion(self):
-        config = configparser.ConfigParser()
-        config.read('config.ini')
-        if 'Configuracion' in config:
-            self.url_var.set(config['Configuracion'].get('url', ''))
-            self.username_var.set(config['Configuracion'].get('username', ''))
-            self.password_var.set(config['Configuracion'].get('password', ''))
-            self.machine_name_var.set(config['Configuracion'].get('machine_name', ''))
-            # Cargar y establecer el último puerto en el combobox
-            ultimo_puerto = config['Configuracion'].get('ultimo_puerto', '')
-            self.puertos_combobox.set(ultimo_puerto)
-            self.contraseña_actual = config['Configuracion'].get('contraseña_adicional', 'MONTRA101') # Obtener la contraseña
-            self.abrir_puerto()
-
-    def guardar_configuracion(self):
-        config = configparser.ConfigParser()
-        config.read('config.ini')
-        # Guardar los valores de configuración
-        config['Configuracion']['url'] = self.url_var.get()
-        config['Configuracion']['username'] = self.username_var.get()
-        config['Configuracion']['password'] = self.password_var.get()
-        config['Configuracion']['machine_name'] = self.machine_name_var.get()
-        # Obtener el último puerto seleccionado del combobox
-        ultimo_puerto = self.puertos_combobox.get()
-        config['Configuracion']['ultimo_puerto'] = ultimo_puerto
-        config['Configuracion']['contraseña_adicional'] = self.contraseña_actual
-        with open('config.ini', 'w') as configfile:
-            config.write(configfile)
-
+#CREACIÓN DE VENTANA DE MEDICIÓN
     def create_medicion_tab(self):
         
         self.sku_var = tk.StringVar()
@@ -126,7 +48,7 @@ class SerialInterface:
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var)
         self.sku_entry.grid(row=0, column=1, padx=10, pady=5)
-        
+        self.sku_entry.focus_set()
         self.medir_button = ttk.Button(self.medicion_tab, text="Medir", command=self.enviar_trama)
         self.medir_button.grid(row=1, columnspan=2, padx=10, pady=5)
         
@@ -170,21 +92,42 @@ class SerialInterface:
         
         self.sku_entry.bind("<Return>", self.cambiar_foco_a_medir)
 
-    def update_contadores(self):
-        self.paquetes_enviados_label.config(text=f"Envíos exitosos: {paquetes_enviados}")
-        self.paquetes_no_enviados_label.config(text=f"Envíos fallidos: {paquetes_no_enviados}")
+    #CREACIÓN DE COMANDOS PARA FOCUS Y ACCIONES CON ENTER
+    # Evento de ENTER en SKU
+    def cambiar_foco_a_medir(self, event): 
+        self.medir_button.focus_set()
+    
+    #Evento de enter al tener focus en "Medir" o "Enviar"
+    def on_enter_press(self, event):
+        if self.is_medirbutton_focused:
+            self.enviar_trama()
+        elif self.is_sendbutton_focused:
+            self.send_data()
+            
+    #Confirmar cursor en boton "medir" con variable en TRUE
+    def on_button_focus_in(self, event): 
+        self.is_medirbutton_focused = True 
+    
+    #Confirmar cursor en boton "medir" con variable en FALSE
+    def on_button_focus_out(self, event): 
+        self.is_medirbutton_focused = False    
+    
+    #Confirmar cursor en boton "Enviar" con variable en TRUE
+    def on_sendbutton_focus_in(self, event):
+        self.is_sendbutton_focused = True
+    
+    #Confirmar cursor en boton "Enviar" con variable en TRUE
+    def on_sendbutton_focus_out(self, event):
+        self.is_sendbutton_focused = False
 
 
+#CREACIÓN DE VENTANA DE CONFIGURACIÓN
     def create_configuracion_tab(self):
 
         self.url_var = tk.StringVar()
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
         self.machine_name_var = tk.StringVar()
-
-        # Botón para cambiar la contraseña
-        cambiar_contraseña_button = ttk.Button(self.configuracion_tab, text="Cambiar Contraseña", command=self.abrir_ventana_cambio_contraseña)
-        cambiar_contraseña_button.grid(row=8, columnspan=2, padx=10, pady=5)
 
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*")
@@ -218,34 +161,19 @@ class SerialInterface:
         
         self.guardar_config_button = ttk.Button(self.configuracion_tab, text="Guardar Configuración", command=self.guardar_configuracion)
         self.guardar_config_button.grid(row=7, columnspan=2, padx=10, pady=5)
-    
-    def cambiar_foco_a_medir(self, event):
-        # Establecer el foco en el botón "Medir"
-        self.medir_button.focus_set()
-    
-    def on_enter_press(self, event):
-        if self.is_medirbutton_focused:
-            self.enviar_trama()
-        elif self.is_sendbutton_focused:
-            self.send_data()
-            
-    def on_button_focus_in(self, event):
-        self.is_medirbutton_focused = True
-
-    def on_button_focus_out(self, event):
-        self.is_medirbutton_focused = False
         
-    def on_sendbutton_focus_in(self, event):
-        self.is_sendbutton_focused = True
-
-    def on_sendbutton_focus_out(self, event):
-        self.is_sendbutton_focused = False
-
+        # Botón para cambiar la contraseña
+        cambiar_contraseña_button = ttk.Button(self.configuracion_tab, text="Cambiar Contraseña", command=self.abrir_ventana_cambio_contraseña)
+        cambiar_contraseña_button.grid(row=8, columnspan=2, padx=10, pady=5)
+    
+#CONFIGURACIÓN DE PUERTOS
+    #Listar los puertos disponibles
     def listar_puertos(self):
         puertos = [puerto.device for puerto in serial.tools.list_ports.comports()]
         self.puertos_combobox['values'] = puertos
-
-    def abrir_puerto(self):
+    
+    #Abrir puerto seleccionado
+    def abrir_puerto(self): 
         puerto_seleccionado = self.puertos_combobox.get()
         try:
             self.puerto_serial = serial.Serial(puerto_seleccionado, baudrate=9600)
@@ -261,8 +189,9 @@ class SerialInterface:
         except Exception as e:
             mensaje = f"Error al abrir el puerto: {e}"
             messagebox.showerror("Error", mensaje)
-
-    def cerrar_puerto(self):
+    
+    #Cerrar el puerto
+    def cerrar_puerto(self): 
         if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
             self.puerto_serial.close()
             self.puerto_serial = None
@@ -270,6 +199,98 @@ class SerialInterface:
             self.abrir_puerto_button.configure(state="enabled")
             self.cerrar_puerto_button.configure(state="disabled")
 
+#CONFIGURACIÓN DE ARCHIVO.INI PARA PRECARGAR Y GUARDAR LOS DATOS
+    #Precargar configuración en archivo.ini
+    def cargar_configuracion(self):
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        if 'Configuracion' in config:
+            self.url_var.set(config['Configuracion'].get('url', ''))
+            self.username_var.set(config['Configuracion'].get('username', ''))
+            self.password_var.set(config['Configuracion'].get('password', ''))
+            self.machine_name_var.set(config['Configuracion'].get('machine_name', ''))
+            # Cargar y establecer el último puerto en el combobox
+            ultimo_puerto = config['Configuracion'].get('ultimo_puerto', '')
+            self.puertos_combobox.set(ultimo_puerto)
+            self.contraseña_actual = config['Configuracion'].get('contraseña_adicional', 'MONTRA101') # Obtener la contraseña
+            self.abrir_puerto()
+
+    #Guardar configuración en archivo.ini
+    def guardar_configuracion(self):
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        # Guardar los valores de configuración
+        config['Configuracion']['url'] = self.url_var.get()
+        config['Configuracion']['username'] = self.username_var.get()
+        config['Configuracion']['password'] = self.password_var.get()
+        config['Configuracion']['machine_name'] = self.machine_name_var.get()
+        # Obtener el último puerto seleccionado del combobox
+        ultimo_puerto = self.puertos_combobox.get()
+        config['Configuracion']['ultimo_puerto'] = ultimo_puerto
+        config['Configuracion']['contraseña_adicional'] = self.contraseña_actual
+        with open('config.ini', 'w') as configfile:
+            config.write(configfile)
+    
+#CONFIGURACIÓN DE CONTRASEÑA PARA ACCESO A VENTANA CONFIGURACIÓN
+    #Verificar contraseña guardada con contraseña ingresada al cambiar de pestaña. Contraseña inicial: MONTRA101
+    def verificar_contraseña(self, event):
+        if self.notebook.tab(self.notebook.select(), "text") == "Configuración":
+            password = simpledialog.askstring("Contraseña", "Ingrese la contraseña:", show="*")
+            if password != self.contraseña_actual:  # Usar la contraseña actual almacenada
+                self.notebook.select(self.medicion_tab)
+                messagebox.showerror("Acceso denegado", "La contraseña ingresada es incorrecta. Acceso denegado a la pestaña de configuración.")
+
+    #Creación de ventana para cambiar contraseña.
+    def abrir_ventana_cambio_contraseña(self):
+        # Ventana emergente para cambiar la contraseña
+        cambio_contraseña_window = tk.Toplevel(self.root)
+        cambio_contraseña_window.title("Cambiar Contraseña")
+
+        ttk.Label(cambio_contraseña_window, text="Contraseña Actual:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        contraseña_actual_entry = ttk.Entry(cambio_contraseña_window, show="*")
+        contraseña_actual_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        ttk.Label(cambio_contraseña_window, text="Nueva Contraseña:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        nueva_contraseña_entry = ttk.Entry(cambio_contraseña_window, show="*")
+        nueva_contraseña_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        ttk.Button(cambio_contraseña_window, text="Guardar", command=lambda: self.guardar_nueva_contraseña(contraseña_actual_entry.get(), nueva_contraseña_entry.get(), cambio_contraseña_window)).grid(row=2, columnspan=2, padx=10, pady=5)
+
+    #Acción ejecutada por el boton para guardar la nueva contraseña en el archivo.ini
+    def guardar_nueva_contraseña(self, contraseña_actual, nueva_contraseña, window):
+        if contraseña_actual != self.contraseña_actual:
+            messagebox.showerror("Error", "La contraseña actual es incorrecta.")
+        elif nueva_contraseña:
+                self.contraseña_actual = nueva_contraseña
+                messagebox.showinfo("Contraseña Cambiada", "La contraseña ha sido cambiada con éxito.")
+                window.destroy()
+                self.guardar_configuracion()  # Guardar la nueva contraseña en el archivo config.ini
+    
+    #Configuración para cerrar el puerto y guardar la configuración al cerrar la app.
+    def cerrar_aplicacion(self):
+        if hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
+            self.cerrar_puerto()  # Cerrar el puerto si está abierto
+        self.guardar_configuracion()  # Guardar la configuración antes de salir
+        self.root.destroy()  # Cerrar la aplicación
+
+#CONFIGURACIÓN PARA RECEPCIÓN PEDIR Y RECIBIR DATOS DE CUBISCAN
+    #Solicitar medición
+    def enviar_trama(self):
+        self.iniciar_espera_datos()
+        if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
+            #self.iniciar_espera_datos()  # Iniciar la espera de datos
+            trama = b'\x02M\x03\r\n'  # Trama: <STX>M<ETX><CR><LF>
+            enviar_thread = threading.Thread(target=self.enviar_trama_thread, args=(trama,))
+            enviar_thread.start()
+    
+    #Metodo independiente para solicitar medición
+    def enviar_trama_thread(self, trama):
+        try:
+            self.puerto_serial.write(trama)
+        except Exception as e:
+            print("Error al enviar la trama:", e)  
+
+    #Recepción de datos y estructurar en campos:
     def leer_datos(self):
         while hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
             try:
@@ -304,6 +325,7 @@ class SerialInterface:
             except:
                 pass
     
+    #Confirmación que ningun dato recibido sea cero.
     def verificar_datos_cubiscan(self):
         # Verificar si alguno de los campos está en 0
         if self.sku_var.get() <= '0' or self.length_var.get() <= '0' or self.width_var.get() <= '0' or self.weight_var.get() <= '0' and self.length_var.get()!= "" or self.width_var.get() == "" or self.height_var.get() == "" or self.weight_var.get() == "":
@@ -313,40 +335,26 @@ class SerialInterface:
         else:
             self.send_button.focus_set()
 
-    
-    # Agrega este método para iniciar la espera de datos
+    # Metodo para iniciar espera de datos
     def iniciar_espera_datos(self):
         self.datos_recibidos = False
         self.timer = threading.Timer(self.tiempo_espera, self.mostrar_error_sin_datos)
         self.timer.start()
 
-    # Agrega este método para mostrar un mensaje de error si no se reciben datos
+    # Método para mostrar un mensaje de error si no se reciben datos
     def mostrar_error_sin_datos(self):
         if not self.datos_recibidos:
             messagebox.showerror("Error", "No hay comunicación con la CubiScan, revise cables y conexiones.")
 
     # Agrega este método para detener el temporizador
     def detener_espera_datos(self):
-        if hasattr(self, 'timer') and self.timer.is_alive():
+        if hasattr(self, 'timer') or self.timer.is_alive():
             self.timer.cancel()
     
-    def enviar_trama(self):
-        if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
-            self.iniciar_espera_datos()  # Iniciar la espera de datos
-            trama = b'\x02M\x03\r\n'  # Trama: <STX>M<ETX><CR><LF>
-            enviar_thread = threading.Thread(target=self.enviar_trama_thread, args=(trama,))
-            enviar_thread.start()
 
-    def enviar_trama_thread(self, trama):
-        try:
-            self.puerto_serial.write(trama)
-        except Exception as e:
-            print("Error al enviar la trama:", e)  
-
+#CONFIGURACIÓN ENVÍO JSON
+    #Configuración del envío de estructura JSON
     def send_data(self):
-        global paquetes_enviados
-        global paquetes_no_enviados
-
         # Obtener los valores de los campos
         sku = self.sku_var.get()
         largo = self.length_var.get()
@@ -387,10 +395,10 @@ class SerialInterface:
 
         #contador
         if response.status_code == 200:
-            paquetes_enviados += 1
+            self.paquetes_enviados += 1
             
         else:
-            paquetes_no_enviados += 1
+            self.paquetes_no_enviados += 1
         # Actualizar la respuesta en la interfaz
         self.response_text.set(response.text)
         #actualizar contadores
@@ -400,6 +408,11 @@ class SerialInterface:
         self.width_var.set("")   # Borra el contenido del campo Ancho
         self.height_var.set("")  # Borra el contenido del campo Alto
         self.weight_var.set("")  # Borra el contenido del campo Peso
+
+    #Conteos exitoso y fallidos de envío
+    def update_contadores(self):
+        self.paquetes_enviados_label.config(text=f"Envíos exitosos: {self.paquetes_enviados}")
+        self.paquetes_no_enviados_label.config(text=f"Envíos fallidos: {self.paquetes_no_enviados}")
 
 
 if __name__ == "__main__":
