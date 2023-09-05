@@ -44,6 +44,7 @@ class SerialInterface:
         self.height_var = tk.StringVar()
         self.weight_var = tk.StringVar()
         self.response_text = tk.StringVar()
+        root.iconbitmap('montra.ico')
 
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var)
