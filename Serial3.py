@@ -381,6 +381,17 @@ class SerialInterface:
             return  # No se envía la información si algún campo es 0
         elif sku == "" or largo == "" or alto == "" or ancho == "" or peso=="":
             self.send_button.focus_set()
+
+        # Obtener los valores de los campos
+        sku = self.sku_var.get()
+        largo = self.length_var.get()
+        ancho = self.width_var.get()
+        alto = self.height_var.get()
+        
+
+    # Verificar si alguno de los campos está en 0
+        if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' and sku == "" or largo == "" or alto == "" or ancho == "":
+
             messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
             return  # No se envía la información si algún campo es 0
         else:
