@@ -7,7 +7,9 @@ import requests
 import json
 import datetime
 import configparser
-import time
+import uuid
+#import winreg
+#import time
 
 
 class SerialInterface:
@@ -34,6 +36,31 @@ class SerialInterface:
         self.datos_recibidos = False  # Agrega esta línea para inicializar la variable
 
         self.notebook.bind("<<NotebookTabChanged>>", self.verificar_contraseña)
+
+        self.verificar_mac()
+        
+        #print(self.obtener_mac())
+
+#VERIFICACIÓN DE MAC
+    def get_mac_address(self):
+        mac = uuid.UUID(int=uuid.getnode()).hex[-12:]
+        formatted_mac = ':'.join([mac[i:i+2] for i in range(0, 12, 2)])
+        return formatted_mac
+
+        
+    def verificar_mac(self):
+        direcciones_mac_permitidas = ["30:05:05:b8:bb:31", "00:11:22:33:44:55", "30:05:05:b8:bb:31"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
+        mac_actual = self.get_mac_address()  # Usa el método de obtener_mac() definido
+        if mac_actual not in direcciones_mac_permitidas:
+            self.cerrar_puerto()
+            self.mostrar_error_y_salir()  # Llama a la función para mostrar un mensaje de error y cerrar el programa
+
+    
+        # Agrega esta función para mostrar un mensaje de error y cerrar el programa.
+    def mostrar_error_y_salir(self):
+        mensaje = "Este software solo puede ejecutarse en una computadora autorizada."
+        messagebox.showerror("Error", mensaje)
+        root.destroy()  # Cierra la aplicación
 
 #CREACIÓN DE VENTANA DE MEDICIÓN
     def create_medicion_tab(self):
