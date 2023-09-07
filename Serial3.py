@@ -8,6 +8,11 @@ import json
 import datetime
 import configparser
 import uuid
+import sqlite3
+import openpyxl
+from pathlib import Path
+
+#from tkinter import filedialog
 #import winreg
 #import time
 
@@ -38,6 +43,7 @@ class SerialInterface:
         self.notebook.bind("<<NotebookTabChanged>>", self.verificar_contraseña)
 
         self.verificar_mac()
+        
         
         #print(self.obtener_mac())
 
@@ -74,11 +80,11 @@ class SerialInterface:
         self.height_var = tk.StringVar()
         self.weight_var = tk.StringVar()
         self.response_text = tk.StringVar()
-        root.iconbitmap('montra.ico')
+
 
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var)
-        self.sku_entry.grid(row=0, column=1, padx=10, pady=5)
+        self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
+        self.sku_entry.grid(row=0, column=1, padx=10, pady=5, ipadx=15)
         self.sku_entry.focus_set()
         self.medir_button = ttk.Button(self.medicion_tab, text="Medir", command=self.enviar_trama)
         self.medir_button.grid(row=1, columnspan=2, padx=10, pady=5)
@@ -102,16 +108,48 @@ class SerialInterface:
         self.peso_entry = ttk.Entry(self.medicion_tab, textvariable=self.weight_var)
         self.peso_entry.grid(row=3, column=3, padx=10, pady=5)
 
-        ttk.Label(self.medicion_tab, text="Respuesta:").grid(row=9, columnspan=2, padx=10, pady=5)
+        ttk.Label(self.medicion_tab, text="Respuesta:").grid(row=8, column=0, columnspan=2, padx=5, pady=10, sticky="w")
         self.response_entry = ttk.Entry(self.medicion_tab, textvariable=self.response_text, state="readonly")
-        self.response_entry.grid(row=7, columnspan=2, padx=10, pady=5)
+        self.response_entry.grid(row=9, column=0, columnspan=3, pady=5, sticky="nsew")
         
+        # Crear la tabla para mostrar los datos
+        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
+        self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
+
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column('Sku', width=200)
+            self.tree.column('Largo', width=50)
+            self.tree.column('Ancho', width=50)
+            self.tree.column('Alto', width=50)
+            self.tree.column('Peso', width=50)
+            self.tree.column('Fecha', width=130)
+            #self.tree.column(col, width=100)
+
+        self.tree.grid(row=10, column=0, columnspan=15)
+        
+        # Aplicar un estilo con bordes a la tabla
+        style = ttk.Style()
+        style.configure("Treeview", font=('Helvetica', 9), rowheight=20)
+        style.configure("Treeview.Heading", font=('Helvetica', 9))
+        style.configure("Treeview.Treeview", borderwidth=1)  # Esto añade bordes alrededor de cada celda
+
+        
+        # Crear barras de desplazamiento
+        y_scroll = ttk.Scrollbar(self.medicion_tab, orient="vertical", command=self.tree.yview)
+        y_scroll.grid(row=10, column=16, sticky='ns')
+        self.tree.configure(yscrollcommand=y_scroll.set)
+
+        x_scroll = ttk.Scrollbar(self.medicion_tab, orient="horizontal", command=self.tree.xview)
+        x_scroll.grid(row = 11, column=0, columnspan=16, sticky = tk.W+tk.E)
+        self.tree.configure(xscrollcommand=x_scroll.set)
+
         #Etiquetas del contador
         self.paquetes_enviados_label = tk.Label(self.medicion_tab, text="Envíos exitosos: 0", font=("verdama", 10))
-        self.paquetes_enviados_label.grid(row=3, column=1)
+        self.paquetes_enviados_label.grid(row=3, column=0, columnspan=2)
 
         self.paquetes_no_enviados_label = tk.Label(self.medicion_tab, text="Envíos fallidos: 0", font=("Verdana", 10))
-        self.paquetes_no_enviados_label.grid(row=4,column=1)
+        self.paquetes_no_enviados_label.grid(row=4,column=0, columnspan=2)
         
         self.medir_button.bind('<Return>', self.on_enter_press)
         self.medir_button.bind('<FocusIn>', self.on_button_focus_in)
@@ -122,6 +160,9 @@ class SerialInterface:
         self.send_button.bind('<FocusOut>', self.on_sendbutton_focus_out)
         
         self.sku_entry.bind("<Return>", self.cambiar_foco_a_medir)
+        
+        #exportar_button = tk.Button(self.medicion_tab, text="Exportar a Excel", command=self.exportar_excel)
+        #exportar_button.grid(row=12, column=0, columnspan=2)
 
     #CREACIÓN DE COMANDOS PARA FOCUS Y ACCIONES CON ENTER
     # Evento de ENTER en SKU
@@ -159,6 +200,8 @@ class SerialInterface:
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
         self.machine_name_var = tk.StringVar()
+        self.ruta_exportacion = tk.StringVar()
+        
 
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*")
@@ -176,27 +219,31 @@ class SerialInterface:
         machine_name_entry = ttk.Entry(self.configuracion_tab, textvariable=self.machine_name_var)
         machine_name_entry.grid(row=3, column=1, padx=10, pady=5, sticky="w")
         
-        ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="Ruta exportación").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        ruta_exportacion_entry = ttk.Entry(self.configuracion_tab, textvariable=self.ruta_exportacion)
+        ruta_exportacion_entry.grid(row=4, column=1, padx=10, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:").grid(row=5, column=0, padx=10, pady=5, sticky="w")
         self.puertos_combobox = ttk.Combobox(self.configuracion_tab)
-        self.puertos_combobox.grid(row=4, column=1, padx=10, pady=5)
+        self.puertos_combobox.grid(row=5, column=1, padx=10, pady=5)
 
         self.actualizar_puertos_button = ttk.Button(self.configuracion_tab, text="Actualizar", command=self.listar_puertos)
-        self.actualizar_puertos_button.grid(row=4, column=2, padx=10, pady=5)
+        self.actualizar_puertos_button.grid(row=5, column=2, padx=10, pady=5)
 
         self.abrir_puerto_button = ttk.Button(self.configuracion_tab, text="Abrir Puerto", command=self.abrir_puerto)
-        self.abrir_puerto_button.grid(row=5, column=1, padx=10, pady=5)
+        self.abrir_puerto_button.grid(row=6, column=1, padx=10, pady=5)
 
         self.cerrar_puerto_button = ttk.Button(self.configuracion_tab, text="Cerrar Puerto", command=self.cerrar_puerto)
-        self.cerrar_puerto_button.grid(row=6, column=1, padx=10, pady=5)
+        self.cerrar_puerto_button.grid(row=7, column=1, padx=10, pady=5)
         self.cerrar_puerto_button.configure(state="disabled")
         
         self.guardar_config_button = ttk.Button(self.configuracion_tab, text="Guardar Configuración", command=self.guardar_configuracion)
-        self.guardar_config_button.grid(row=7, columnspan=2, padx=10, pady=5)
-        
+        self.guardar_config_button.grid(row=8, columnspan=2, padx=10, pady=5)
+
         # Botón para cambiar la contraseña
         cambiar_contraseña_button = ttk.Button(self.configuracion_tab, text="Cambiar Contraseña", command=self.abrir_ventana_cambio_contraseña)
-        cambiar_contraseña_button.grid(row=8, columnspan=2, padx=10, pady=5)
-    
+        cambiar_contraseña_button.grid(row=9, columnspan=2, padx=10, pady=5)
+
 #CONFIGURACIÓN DE PUERTOS
     #Listar los puertos disponibles
     def listar_puertos(self):
@@ -240,6 +287,7 @@ class SerialInterface:
             self.username_var.set(config['Configuracion'].get('username', ''))
             self.password_var.set(config['Configuracion'].get('password', ''))
             self.machine_name_var.set(config['Configuracion'].get('machine_name', ''))
+            self.ruta_exportacion.set(config['Configuracion'].get('ruta_exportacion', ''))
             # Cargar y establecer el último puerto en el combobox
             ultimo_puerto = config['Configuracion'].get('ultimo_puerto', '')
             self.puertos_combobox.set(ultimo_puerto)
@@ -255,13 +303,63 @@ class SerialInterface:
         config['Configuracion']['username'] = self.username_var.get()
         config['Configuracion']['password'] = self.password_var.get()
         config['Configuracion']['machine_name'] = self.machine_name_var.get()
+        config['Configuracion']['ruta_exportacion'] = self.ruta_exportacion.get()
         # Obtener el último puerto seleccionado del combobox
         ultimo_puerto = self.puertos_combobox.get()
         config['Configuracion']['ultimo_puerto'] = ultimo_puerto
         config['Configuracion']['contraseña_adicional'] = self.contraseña_actual
         with open('config.ini', 'w') as configfile:
             config.write(configfile)
-    
+
+#CONFIGURACIÓN PARA EXPORTACIÓN DE DATOS
+    def exportar_excel(self):
+        #folder_selected = filedialog.askdirectory(title="Selecciona la carpeta de destino")
+        #if folder_selected:
+        self.ruta_destino = Path(self.ruta_exportacion.get())
+        fecha_actual = datetime.datetime.now().strftime("%Y%d%m_%H-%M-%S")
+        nombre_archivo = f"CubiScan_{fecha_actual}.xlsx"
+        ruta_completa = self.ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
+        
+    # Verificar si la carpeta de destino existe
+        """ if not self.ruta_destino.exists() or not self.ruta_destino.is_dir():
+            root = tk.Tk()
+            root.withdraw()  # Ocultar la ventana principal de Tkinter
+            # Mostrar un cuadro de diálogo para seleccionar una carpeta
+            folder_selected = filedialog.askdirectory(title="Selecciona la carpeta de destino")
+            # Verificar si el usuario seleccionó una carpeta
+            if folder_selected:
+                self.ruta_exportacion.set(folder_selected)
+                self.nueva_ruta_destino = Path(self.ruta_exportacion.get())  # Actualizar la ruta de destino
+                ruta_completa = self.nueva_ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
+            else:
+                # El usuario canceló la selección, puedes manejar esto como desees
+                return"""
+
+            
+        print(self.ruta_exportacion.get())
+        
+        workbook = openpyxl.Workbook()
+        worksheet = workbook.active
+        worksheet.title = "Medidas"
+        
+        # Encabezados
+        encabezados = ["SKU", "Largo", "Ancho", "Alto", "Peso", "Fecha"]
+        for col_num, encabezado in enumerate(encabezados, 1):
+            worksheet.cell(row=1, column=col_num, value=encabezado)
+
+        # Datos
+        for row_num, item in enumerate(self.tree.get_children(), 2):
+            datos_fila = [self.tree.item(item, 'values')[0], self.tree.item(item, 'values')[1],
+                        self.tree.item(item, 'values')[2], self.tree.item(item, 'values')[3],
+                        self.tree.item(item, 'values')[4], self.tree.item(item, 'values')[5]]
+            for col_num, valor in enumerate(datos_fila, 1):
+                worksheet.cell(row=row_num, column=col_num, value=valor)
+
+        # Guardar el archivo Excel
+        workbook.save(ruta_completa)
+
+
+
 #CONFIGURACIÓN DE CONTRASEÑA PARA ACCESO A VENTANA CONFIGURACIÓN
     #Verificar contraseña guardada con contraseña ingresada al cambiar de pestaña. Contraseña inicial: MONTRA101
     def verificar_contraseña(self, event):
@@ -302,7 +400,9 @@ class SerialInterface:
         if hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
             self.cerrar_puerto()  # Cerrar el puerto si está abierto
         self.guardar_configuracion()  # Guardar la configuración antes de salir
+        self.exportar_excel()
         self.root.destroy()  # Cerrar la aplicación
+
 
 #CONFIGURACIÓN PARA RECEPCIÓN PEDIR Y RECIBIR DATOS DE CUBISCAN
     #Solicitar medición
@@ -392,19 +492,28 @@ class SerialInterface:
         ancho = self.width_var.get()
         alto = self.height_var.get()
         peso = self.weight_var.get()
+        fecha = datetime.datetime.now().strftime("%Y-%d-%m %H:%M:%S")
+        root.iconbitmap('montra.ico')
 
+        # Guardar datos en la base de datos
+        conn = sqlite3.connect('Montradb.db')
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO Montra (sku, largo, ancho, alto, peso, fecha) VALUES (?, ?, ?, ?,?, ?)', (sku, largo, ancho, alto, peso, fecha))
+        conn.commit()
+        conn.close()
         # Construir el JSON con los datos ingresados
         data = {
             "machine_pid": self.machine_name_var.get(),
             "code": self.sku_var.get(),
-            "measure_date": datetime.datetime.now().strftime("%Y-%d-%m %H:%M:%S"),
+            "measure_date": fecha,
             "length": self.length_var.get(),
             "width": self.width_var.get(),
             "height": self.height_var.get(),
             "weight": self.weight_var.get(),
             "unit_type": "cm"
         }
-        print(data)
+        #print(data)
+        
         # Verificar si alguno de los campos está en 0
         if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' or peso <= '0':
             self.send_button.focus_set()
@@ -412,28 +521,15 @@ class SerialInterface:
             return  # No se envía la información si algún campo es 0
         elif sku == "" or largo == "" or alto == "" or ancho == "" or peso=="":
             self.send_button.focus_set()
-
-        # Obtener los valores de los campos
-        sku = self.sku_var.get()
-        largo = self.length_var.get()
-        ancho = self.width_var.get()
-        alto = self.height_var.get()
-        
-
-    # Verificar si alguno de los campos está en 0
-        if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' and sku == "" or largo == "" or alto == "" or ancho == "":
-
-            messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
-            return  # No se envía la información si algún campo es 0
         else:
-            self.sku_entry.focus_set()
-            
+            # Mostrar datos en la tabla
+            self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha))
 
         # Realizar la solicitud POST al WebService
         url = self.url_var.get()
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, data=json.dumps(data), headers=headers, auth=(self.username_var.get(), self.password_var.get()))
-
+        
         #contador
         if response.status_code == 200:
             self.paquetes_enviados += 1
@@ -461,5 +557,3 @@ if __name__ == "__main__":
     root.resizable(False,False)
     app = SerialInterface(root)
     root.mainloop()
-
-#Comentario adicional
