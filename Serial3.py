@@ -11,16 +11,15 @@ import uuid
 import sqlite3
 import openpyxl
 from pathlib import Path
+from tkinter import filedialog
 
-#from tkinter import filedialog
-#import winreg
-#import time
 
 
 class SerialInterface:
     def __init__(self, root):
         self.root = root
         self.root.title("Comunicación WebService Deprisa")
+        root.iconbitmap('montra.ico')
         
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
@@ -33,7 +32,7 @@ class SerialInterface:
         self.create_configuracion_tab()
         self.cargar_configuracion()
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
-                
+
         self.paquetes_enviados = 0
         self.paquetes_no_enviados = 0
         
@@ -45,7 +44,7 @@ class SerialInterface:
         self.verificar_mac()
         
         
-        #print(self.obtener_mac())
+        #print(self.get_mac_address())
 
 #VERIFICACIÓN DE MAC
     #Obtener mac_address
@@ -175,7 +174,7 @@ class SerialInterface:
             self.enviar_trama()
         elif self.is_sendbutton_focused:
             self.send_data()
-            
+    
     #Confirmar cursor en boton "medir" con variable en TRUE
     def on_button_focus_in(self, event): 
         self.is_medirbutton_focused = True 
@@ -223,6 +222,9 @@ class SerialInterface:
         ruta_exportacion_entry = ttk.Entry(self.configuracion_tab, textvariable=self.ruta_exportacion)
         ruta_exportacion_entry.grid(row=4, column=1, padx=10, pady=5, sticky="w")
         
+        self.actualizar_puertos_button = ttk.Button(self.configuracion_tab, text="Carpeta", command=self.seleccionar_carpeta)
+        self.actualizar_puertos_button.grid(row=4, column=2, padx=10, pady=5)
+                
         ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:").grid(row=5, column=0, padx=10, pady=5, sticky="w")
         self.puertos_combobox = ttk.Combobox(self.configuracion_tab)
         self.puertos_combobox.grid(row=5, column=1, padx=10, pady=5)
@@ -243,6 +245,11 @@ class SerialInterface:
         # Botón para cambiar la contraseña
         cambiar_contraseña_button = ttk.Button(self.configuracion_tab, text="Cambiar Contraseña", command=self.abrir_ventana_cambio_contraseña)
         cambiar_contraseña_button.grid(row=9, columnspan=2, padx=10, pady=5)
+
+    #Configuración de boton para escoger carpeta de exportación
+    def seleccionar_carpeta(self):
+        folder_selected = filedialog.askdirectory(title="Seleccione una carpeta de destino")
+        self.ruta_exportacion.set(folder_selected)
 
 #CONFIGURACIÓN DE PUERTOS
     #Listar los puertos disponibles
@@ -313,31 +320,24 @@ class SerialInterface:
 
 #CONFIGURACIÓN PARA EXPORTACIÓN DE DATOS
     def exportar_excel(self):
-        #folder_selected = filedialog.askdirectory(title="Selecciona la carpeta de destino")
-        #if folder_selected:
         self.ruta_destino = Path(self.ruta_exportacion.get())
         fecha_actual = datetime.datetime.now().strftime("%Y%d%m_%H-%M-%S")
         nombre_archivo = f"CubiScan_{fecha_actual}.xlsx"
         ruta_completa = self.ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
-        
+
     # Verificar si la carpeta de destino existe
-        """ if not self.ruta_destino.exists() or not self.ruta_destino.is_dir():
-            root = tk.Tk()
-            root.withdraw()  # Ocultar la ventana principal de Tkinter
-            # Mostrar un cuadro de diálogo para seleccionar una carpeta
-            folder_selected = filedialog.askdirectory(title="Selecciona la carpeta de destino")
-            # Verificar si el usuario seleccionó una carpeta
-            if folder_selected:
+        if not self.ruta_destino.exists() or not self.ruta_destino.is_dir():
+            if folder_selected := filedialog.askdirectory(
+                title="Selecciona la carpeta de destino"
+            ):
                 self.ruta_exportacion.set(folder_selected)
                 self.nueva_ruta_destino = Path(self.ruta_exportacion.get())  # Actualizar la ruta de destino
                 ruta_completa = self.nueva_ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
             else:
-                # El usuario canceló la selección, puedes manejar esto como desees
-                return"""
-
-            
-        print(self.ruta_exportacion.get())
-        
+                folder_selected = filedialog.askdirectory(title="Seleccione una carpeta de destino")
+                self.ruta_destino=Path(self.ruta_exportacion.get())
+                ruta_completa = self.ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
+                return
         workbook = openpyxl.Workbook()
         worksheet = workbook.active
         worksheet.title = "Medidas"
@@ -356,9 +356,9 @@ class SerialInterface:
                 worksheet.cell(row=row_num, column=col_num, value=valor)
 
         # Guardar el archivo Excel
+        #print(self.ruta_exportacion.get())
+        self.guardar_configuracion()
         workbook.save(ruta_completa)
-
-
 
 #CONFIGURACIÓN DE CONTRASEÑA PARA ACCESO A VENTANA CONFIGURACIÓN
     #Verificar contraseña guardada con contraseña ingresada al cambiar de pestaña. Contraseña inicial: MONTRA101
@@ -493,7 +493,6 @@ class SerialInterface:
         alto = self.height_var.get()
         peso = self.weight_var.get()
         fecha = datetime.datetime.now().strftime("%Y-%d-%m %H:%M:%S")
-        root.iconbitmap('montra.ico')
 
         # Guardar datos en la base de datos
         conn = sqlite3.connect('Montradb.db')
@@ -501,6 +500,7 @@ class SerialInterface:
         cursor.execute('INSERT INTO Montra (sku, largo, ancho, alto, peso, fecha) VALUES (?, ?, ?, ?,?, ?)', (sku, largo, ancho, alto, peso, fecha))
         conn.commit()
         conn.close()
+        
         # Construir el JSON con los datos ingresados
         data = {
             "machine_pid": self.machine_name_var.get(),
@@ -508,11 +508,11 @@ class SerialInterface:
             "measure_date": fecha,
             "length": self.length_var.get(),
             "width": self.width_var.get(),
-            "height": self.height_var.get(),
-            "weight": self.weight_var.get(),
+            "heigth": self.height_var.get(),
+            "weigth": self.weight_var.get(),
             "unit_type": "cm"
         }
-        #print(data)
+        print(data)
         
         # Verificar si alguno de los campos está en 0
         if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' or peso <= '0':
@@ -524,6 +524,7 @@ class SerialInterface:
         else:
             # Mostrar datos en la tabla
             self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha))
+
 
         # Realizar la solicitud POST al WebService
         url = self.url_var.get()
