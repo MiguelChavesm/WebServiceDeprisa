@@ -246,7 +246,7 @@ class SerialInterface:
         cambiar_contraseña_button = ttk.Button(self.configuracion_tab, text="Cambiar Contraseña", command=self.abrir_ventana_cambio_contraseña)
         cambiar_contraseña_button.grid(row=9, columnspan=2, padx=10, pady=5)
 
-#CONFIGURACIÓN BOTON PARA SELECCIONAR CARPETA
+    #Configuración de boton para escoger carpeta de exportación
     def seleccionar_carpeta(self):
         folder_selected = filedialog.askdirectory(title="Seleccione una carpeta de destino")
         self.ruta_exportacion.set(folder_selected)
@@ -500,6 +500,7 @@ class SerialInterface:
         cursor.execute('INSERT INTO Montra (sku, largo, ancho, alto, peso, fecha) VALUES (?, ?, ?, ?,?, ?)', (sku, largo, ancho, alto, peso, fecha))
         conn.commit()
         conn.close()
+        
         # Construir el JSON con los datos ingresados
         data = {
             "machine_pid": self.machine_name_var.get(),
@@ -507,11 +508,11 @@ class SerialInterface:
             "measure_date": fecha,
             "length": self.length_var.get(),
             "width": self.width_var.get(),
-            "height": self.height_var.get(),
-            "weight": self.weight_var.get(),
+            "heigth": self.height_var.get(),
+            "weigth": self.weight_var.get(),
             "unit_type": "cm"
         }
-        #print(data)
+        print(data)
         
         # Verificar si alguno de los campos está en 0
         if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' or peso <= '0':
@@ -523,6 +524,7 @@ class SerialInterface:
         else:
             # Mostrar datos en la tabla
             self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha))
+
 
         # Realizar la solicitud POST al WebService
         url = self.url_var.get()
