@@ -12,6 +12,10 @@ import sqlite3
 import openpyxl
 from pathlib import Path
 from tkinter import filedialog
+import numpy as np
+import customtkinter
+from PIL import Image, ImageTk
+
 
 
 
@@ -19,8 +23,7 @@ class SerialInterface:
     def __init__(self, root):
         self.root = root
         self.mostrar_ventana_inicio_sesion()
-        
-        self.root.title("Comunicación WebService Deprisa")
+        self.root.title("MONTRA")
         root.iconbitmap('montra.ico')
         
         self.notebook = ttk.Notebook(root)
@@ -78,26 +81,49 @@ class SerialInterface:
     def mostrar_ventana_inicio_sesion(self):
         self.root.withdraw()  # Oculta la ventana principal
         self.ventana_inicio_sesion = tk.Toplevel(self.root)
-        self.ventana_inicio_sesion.title("Inicio de Sesión")
+        self.ventana_inicio_sesion.title("MONTRA")
         self.ventana_inicio_sesion.iconbitmap('montra.ico')
+        self.ventana_inicio_sesion.configure(bg="#FFFFFF")
+        self.ventana_inicio_sesion.resizable(False,False)
+        Fuente_inicio_sesion = ("Helvetica", 13)
+        
+        # Cargar imagen del disco.
+        self.logo_montra = tk.PhotoImage(file="Logo_Montra.png")
+        self.logo_montra = self.logo_montra.subsample(1, 1)
+        # Insertarla en una etiqueta.
+        self.label_logo_montra = ttk.Label(self.ventana_inicio_sesion, image=self.logo_montra, background="#FFFFFF")
+        self.label_logo_montra.pack(padx=(60,60), pady=(20,0))
 
-        usuario_label = tk.Label(self.ventana_inicio_sesion, text="Usuario:")
-        usuario_label.pack()
-        self.usuario_entry = tk.Entry(self.ventana_inicio_sesion)
-        self.usuario_entry.pack()
+        self.logo_cubiscan = tk.PhotoImage(file="Cubiscan_logo.png")
+        self.logo_cubiscan = self.logo_cubiscan.subsample(1, 1)
+        # Insertarla en una etiqueta.
+        self.label_logo_cubiscan = ttk.Label(self.ventana_inicio_sesion, image=self.logo_cubiscan, background="#FFFFFF")
+        self.label_logo_cubiscan.pack()
+
+        
+        usuario_label = tk.Label(self.ventana_inicio_sesion, text="Usuario:", background="#FFFFFF", font=Fuente_inicio_sesion)
+        usuario_label.pack(padx=(50,0),pady=(20, 0), anchor="w")  # Agregar espacio arriba
+        self.usuario_entry = tk.Entry(self.ventana_inicio_sesion, borderwidth=2, font=Fuente_inicio_sesion, width=30, background="#E4E9EA")
+        self.usuario_entry.pack(padx=(50,50))
 
 
-        contrasena_label = tk.Label(self.ventana_inicio_sesion, text="Contraseña:")
-        contrasena_label.pack()
-        self.contrasena_entry = tk.Entry(self.ventana_inicio_sesion, show="*")  # Muestra asteriscos para ocultar la contraseña
-        self.contrasena_entry.pack()
+        contrasena_label = tk.Label(self.ventana_inicio_sesion, text="Contraseña:", background="#FFFFFF", font=Fuente_inicio_sesion)
+        contrasena_label.pack(padx=(50,0),pady=(20, 0), anchor="w")
+        self.contrasena_entry = tk.Entry(self.ventana_inicio_sesion, show="*", borderwidth=2, font=Fuente_inicio_sesion, width=30, background="#E4E9EA")  # Muestra asteriscos para ocultar la contraseña
+        self.contrasena_entry.pack(padx=(50,50))
 
         # Botón de inicio de sesión
-        boton_login = tk.Button(self.ventana_inicio_sesion, text="Iniciar Sesión", command=self.verificar_credenciales)
-        boton_login.pack()
-        
+        login_image = customtkinter.CTkImage(Image.open("login2.png").resize((100,100), Image.Resampling.LANCZOS))
+        boton_login = customtkinter.CTkButton(self.ventana_inicio_sesion, text="Iniciar Sesión", font=("Helvetica", 16), text_color="#000000", fg_color="#B1B3B6", hover_color="#828890", width=200, height=20, compound="left", image= login_image, command=self.verificar_credenciales)
+        boton_login.pack(pady=(20, 0))
         self.contrasena_entry.bind('<Return>', lambda event=None: self.verificar_credenciales())
-
+        
+        self.logo_deprisa = tk.PhotoImage(file="Deprisa_logo.png")
+        self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
+        # Insertarla en una etiqueta.
+        self.label_logo_deprisa = ttk.Label(self.ventana_inicio_sesion, image=self.logo_deprisa, background="#FFFFFF")
+        self.label_logo_deprisa.pack(pady=(50, 10))
+        
         
         self.ventana_inicio_sesion.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
         
