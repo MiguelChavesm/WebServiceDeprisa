@@ -18,6 +18,8 @@ from tkinter import filedialog
 class SerialInterface:
     def __init__(self, root):
         self.root = root
+        self.mostrar_ventana_inicio_sesion()
+        
         self.root.title("Comunicación WebService Deprisa")
         root.iconbitmap('montra.ico')
         
@@ -25,8 +27,10 @@ class SerialInterface:
         self.notebook.pack(fill="both", expand=True)
         self.medicion_tab = ttk.Frame(self.notebook)
         self.configuracion_tab = ttk.Frame(self.notebook)
-        self.notebook.add(self.medicion_tab, text="Medición")
-        self.notebook.add(self.configuracion_tab, text="Configuración")
+        self.notebook.add(self.medicion_tab, text="Medición", state="disabled")  # Inicialmente deshabilitada
+        self.notebook.add(self.configuracion_tab, text="Configuración", state="disabled")  # Inicialmente deshabilitada
+        #self.notebook.add(self.medicion_tab, text="Medición") #Se comenta para prueba de inicio de sesión
+        #self.notebook.add(self.configuracion_tab, text="Configuración") #Se comenta para prueba de inicio de sesión
         
         self.create_medicion_tab()
         self.create_configuracion_tab()
@@ -39,7 +43,7 @@ class SerialInterface:
         self.tiempo_espera = 2  # Tiempo en segundos para esperar la recepción de datos
         self.datos_recibidos = False  # Agrega esta línea para inicializar la variable
 
-        self.notebook.bind("<<NotebookTabChanged>>", self.verificar_contraseña)
+        #self.notebook.bind("<<NotebookTabChanged>>", self.verificar_contraseña)
 
         self.verificar_mac()
         
@@ -69,6 +73,66 @@ class SerialInterface:
         mensaje = "Este software solo puede ejecutarse en una computadora autorizada."
         messagebox.showerror("Error", mensaje)
         root.destroy()  # Cierra la aplicación
+
+#CREACIÓN DE VENTANA DE INICIO DE SESIÓN
+    def mostrar_ventana_inicio_sesion(self):
+        self.root.withdraw()  # Oculta la ventana principal
+        self.ventana_inicio_sesion = tk.Toplevel(self.root)
+        self.ventana_inicio_sesion.title("Inicio de Sesión")
+        self.ventana_inicio_sesion.iconbitmap('montra.ico')
+
+        usuario_label = tk.Label(self.ventana_inicio_sesion, text="Usuario:")
+        usuario_label.pack()
+        self.usuario_entry = tk.Entry(self.ventana_inicio_sesion)
+        self.usuario_entry.pack()
+
+
+        contrasena_label = tk.Label(self.ventana_inicio_sesion, text="Contraseña:")
+        contrasena_label.pack()
+        self.contrasena_entry = tk.Entry(self.ventana_inicio_sesion, show="*")  # Muestra asteriscos para ocultar la contraseña
+        self.contrasena_entry.pack()
+
+        # Botón de inicio de sesión
+        boton_login = tk.Button(self.ventana_inicio_sesion, text="Iniciar Sesión", command=self.verificar_credenciales)
+        boton_login.pack()
+        
+        self.contrasena_entry.bind('<Return>', lambda event=None: self.verificar_credenciales())
+
+        
+        self.ventana_inicio_sesion.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
+        
+
+    def verificar_credenciales(self):
+        usuario = self.usuario_entry.get()
+        contrasena = self.contrasena_entry.get()
+
+        conn = sqlite3.connect('Montradb.db')
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT Acceso FROM Login WHERE Usuario=? AND Contraseña=?", (usuario, contrasena))
+        resultado = cursor.fetchone()
+
+        if resultado:
+            acceso = resultado[0]
+            if acceso == 'ADMINISTRADOR':
+                self.notebook.tab(0, state="normal")  # Habilitar la pestaña de Medición
+                self.notebook.tab(1, state="normal")  # Habilitar la pestaña de Configuración
+                self.notebook.select(0)  # Cambiar a la pestaña de Medición
+                self.ventana_inicio_sesion.destroy()  # Cerrar la ventana de inicio de sesión
+            elif acceso == 'OPERARIO':
+                self.notebook.tab(0, state="normal")  # Habilitar la pestaña de Medición
+                self.notebook.select(0)  # Cambiar a la pestaña de Medición
+                self.ventana_inicio_sesion.destroy()  # Cerrar la ventana de inicio de sesión
+            self.root.deiconify()  # Mostrar la ventana principal nuevamente
+        else:
+            messagebox.showerror("Error", "Credenciales incorrectas. Intente nuevamente.")
+            # Borra el contenido de los campos de entrada
+            #self.mostrar_ventana_inicio_sesion()
+            self.usuario_entry.delete(0, tk.END)
+            self.contrasena_entry.delete(0, tk.END)
+            
+        conn.close()
+        self.usuario_registrado=usuario
 
 #CREACIÓN DE VENTANA DE MEDICIÓN
     def create_medicion_tab(self):
@@ -112,7 +176,7 @@ class SerialInterface:
         self.response_entry.grid(row=9, column=0, columnspan=3, pady=5, sticky="nsew")
         
         # Crear la tabla para mostrar los datos
-        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
+        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Usuario')
         self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
 
         for col in columns:
@@ -123,6 +187,7 @@ class SerialInterface:
             self.tree.column('Alto', width=50)
             self.tree.column('Peso', width=50)
             self.tree.column('Fecha', width=130)
+            self.tree.column('Usuario', width=80)
             #self.tree.column(col, width=100)
 
         self.tree.grid(row=10, column=0, columnspan=15)
@@ -132,7 +197,6 @@ class SerialInterface:
         style.configure("Treeview", font=('Helvetica', 9), rowheight=20)
         style.configure("Treeview.Heading", font=('Helvetica', 9))
         style.configure("Treeview.Treeview", borderwidth=1)  # Esto añade bordes alrededor de cada celda
-
         
         # Crear barras de desplazamiento
         y_scroll = ttk.Scrollbar(self.medicion_tab, orient="vertical", command=self.tree.yview)
@@ -160,8 +224,18 @@ class SerialInterface:
         
         self.sku_entry.bind("<Return>", self.cambiar_foco_a_medir)
         
+        self.cerrar_sesion_button = ttk.Button(self.medicion_tab, text="Cerrar Sesión", command=self.cerrar_sesion)
+        self.cerrar_sesion_button.grid(row=5, column=0, columnspan=2, padx=10, pady=5)
+
+        
         #exportar_button = tk.Button(self.medicion_tab, text="Exportar a Excel", command=self.exportar_excel)
         #exportar_button.grid(row=12, column=0, columnspan=2)
+
+    #Función para funcion del boton de cerrar sesión
+    def cerrar_sesion(self):
+        self.notebook.tab(0, state="disabled")  # Deshabilitar la pestaña de Medición
+        self.notebook.tab(1, state="disabled")  # Deshabilitar la pestaña de Configuración
+        self.mostrar_ventana_inicio_sesion()  # Mostrar la ventana de inicio de sesión nuevamente
 
     #CREACIÓN DE COMANDOS PARA FOCUS Y ACCIONES CON ENTER
     # Evento de ENTER en SKU
@@ -242,9 +316,9 @@ class SerialInterface:
         self.guardar_config_button = ttk.Button(self.configuracion_tab, text="Guardar Configuración", command=self.guardar_configuracion)
         self.guardar_config_button.grid(row=8, columnspan=2, padx=10, pady=5)
 
-        # Botón para cambiar la contraseña
-        cambiar_contraseña_button = ttk.Button(self.configuracion_tab, text="Cambiar Contraseña", command=self.abrir_ventana_cambio_contraseña)
-        cambiar_contraseña_button.grid(row=9, columnspan=2, padx=10, pady=5)
+        #Botón para crear usuarios
+        crear_usuario_button = ttk.Button(self.configuracion_tab, text="Crear usuario", command=self.abrir_ventana_crear_usuario)
+        crear_usuario_button.grid(row=9, columnspan=2, padx=10, pady=5)
 
     #Configuración de boton para escoger carpeta de exportación
     def seleccionar_carpeta(self):
@@ -362,39 +436,51 @@ class SerialInterface:
 
 #CONFIGURACIÓN DE CONTRASEÑA PARA ACCESO A VENTANA CONFIGURACIÓN
     #Verificar contraseña guardada con contraseña ingresada al cambiar de pestaña. Contraseña inicial: MONTRA101
-    def verificar_contraseña(self, event):
+    """def verificar_contraseña(self, event):
         if self.notebook.tab(self.notebook.select(), "text") == "Configuración":
             password = simpledialog.askstring("Contraseña", "Ingrese la contraseña:", show="*")
             if password != self.contraseña_actual:  # Usar la contraseña actual almacenada
                 self.notebook.select(self.medicion_tab)
-                messagebox.showerror("Acceso denegado", "La contraseña ingresada es incorrecta. Acceso denegado a la pestaña de configuración.")
+                messagebox.showerror("Acceso denegado", "La contraseña ingresada es incorrecta. Acceso denegado a la pestaña de configuración.")"""
 
     #Creación de ventana para cambiar contraseña.
-    def abrir_ventana_cambio_contraseña(self):
+    def abrir_ventana_crear_usuario(self):
         # Ventana emergente para cambiar la contraseña
-        cambio_contraseña_window = tk.Toplevel(self.root)
-        cambio_contraseña_window.title("Cambiar Contraseña")
+        self.crear_usuario_window = tk.Toplevel(self.root)
+        self.crear_usuario_window.title("Cambiar Contraseña")
+        self.crear_usuario_window.iconbitmap('montra.ico')
+        self.crear_usuario_window.grab_set()
 
-        ttk.Label(cambio_contraseña_window, text="Contraseña Actual:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        contraseña_actual_entry = ttk.Entry(cambio_contraseña_window, show="*")
-        contraseña_actual_entry.grid(row=0, column=1, padx=10, pady=5)
 
-        ttk.Label(cambio_contraseña_window, text="Nueva Contraseña:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        nueva_contraseña_entry = ttk.Entry(cambio_contraseña_window, show="*")
-        nueva_contraseña_entry.grid(row=1, column=1, padx=10, pady=5)
+        ttk.Label(self.crear_usuario_window, text="Usuario:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        nombre_usuario_entry = ttk.Entry(self.crear_usuario_window)
+        nombre_usuario_entry.grid(row=0, column=1, padx=10, pady=5)
 
-        ttk.Button(cambio_contraseña_window, text="Guardar", command=lambda: self.guardar_nueva_contraseña(contraseña_actual_entry.get(), nueva_contraseña_entry.get(), cambio_contraseña_window)).grid(row=2, columnspan=2, padx=10, pady=5)
+        ttk.Label(self.crear_usuario_window, text="Contraseña:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        contraseña_usuario_entry = ttk.Entry(self.crear_usuario_window, show="*")
+        contraseña_usuario_entry.grid(row=1, column=1, padx=10, pady=5)
 
-    #Acción ejecutada por el boton para guardar la nueva contraseña en el archivo.ini
-    def guardar_nueva_contraseña(self, contraseña_actual, nueva_contraseña, window):
-        if contraseña_actual != self.contraseña_actual:
-            messagebox.showerror("Error", "La contraseña actual es incorrecta.")
-        elif nueva_contraseña:
-                self.contraseña_actual = nueva_contraseña
-                messagebox.showinfo("Contraseña Cambiada", "La contraseña ha sido cambiada con éxito.")
-                window.destroy()
-                self.guardar_configuracion()  # Guardar la nueva contraseña en el archivo config.ini
+        ttk.Label(self.crear_usuario_window, text="Perfil:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        acceso_combobox = ttk.Combobox(self.crear_usuario_window, state="readonly", values=["ADMINISTRADOR", "OPERARIO"])
+        acceso_combobox.grid(row=2, column=1, padx=10, pady=5)
+
+        ttk.Button(self.crear_usuario_window, text="Guardar",command=lambda: self.guardar_nuevo_usuario(nombre_usuario_entry.get(), contraseña_usuario_entry.get(),acceso_combobox.get() )).grid(row=4, columnspan=2, padx=10, pady=5)
     
+    #Acción ejecutada por el boton para guardar la nueva contraseña en el archivo.ini
+    def guardar_nuevo_usuario(self, nombre_usuario_entry, contraseña_usuario_entry, acceso_combobox):
+        
+        if (nombre_usuario_entry!="" and contraseña_usuario_entry!="" and acceso_combobox!=""):
+            conn = sqlite3.connect('Montradb.db')
+            cursor = conn.cursor()
+            cursor.execute('INSERT INTO Login (Usuario, Contraseña, Acceso) VALUES (?, ?, ?)', (nombre_usuario_entry, contraseña_usuario_entry, acceso_combobox ))
+            conn.commit()
+            conn.close()
+            messagebox.showinfo(message="El usuario se ha creado con exito")
+            self.crear_usuario_window.destroy()  # Cerrar la ventana de inicio de sesión
+        else:
+            messagebox.showerror(message="Debe completar todos los campos para crear usuario")
+
+
     #Configuración para cerrar el puerto y guardar la configuración al cerrar la app.
     def cerrar_aplicacion(self):
         if hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
@@ -492,7 +578,8 @@ class SerialInterface:
         ancho = self.width_var.get()
         alto = self.height_var.get()
         peso = self.weight_var.get()
-        fecha = datetime.datetime.now().strftime("%Y-%d-%m %H:%M:%S")
+        fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        Usuario = self.usuario_registrado
 
         # Guardar datos en la base de datos
         conn = sqlite3.connect('Montradb.db')
@@ -523,7 +610,7 @@ class SerialInterface:
             self.send_button.focus_set()
         else:
             # Mostrar datos en la tabla
-            self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha))
+            self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha, Usuario))
 
 
         # Realizar la solicitud POST al WebService
@@ -546,6 +633,7 @@ class SerialInterface:
         self.width_var.set("")   # Borra el contenido del campo Ancho
         self.height_var.set("")  # Borra el contenido del campo Alto
         self.weight_var.set("")  # Borra el contenido del campo Peso
+
 
     #Conteos exitoso y fallidos de envío
     def update_contadores(self):
