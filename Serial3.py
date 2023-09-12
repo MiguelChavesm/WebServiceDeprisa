@@ -18,10 +18,11 @@ from tkinter import filedialog
 class SerialInterface:
     def __init__(self, root):
         self.root = root
+        self.mostrar_ventana_inicio_sesion()
+        
         self.root.title("Comunicación WebService Deprisa")
         root.iconbitmap('montra.ico')
         
-        self.mostrar_ventana_inicio_sesion()
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
         self.medicion_tab = ttk.Frame(self.notebook)
@@ -175,7 +176,7 @@ class SerialInterface:
         self.response_entry.grid(row=9, column=0, columnspan=3, pady=5, sticky="nsew")
         
         # Crear la tabla para mostrar los datos
-        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
+        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Usuario')
         self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
 
         for col in columns:
@@ -186,6 +187,7 @@ class SerialInterface:
             self.tree.column('Alto', width=50)
             self.tree.column('Peso', width=50)
             self.tree.column('Fecha', width=130)
+            self.tree.column('Usuario', width=80)
             #self.tree.column(col, width=100)
 
         self.tree.grid(row=10, column=0, columnspan=15)
@@ -576,7 +578,8 @@ class SerialInterface:
         ancho = self.width_var.get()
         alto = self.height_var.get()
         peso = self.weight_var.get()
-        fecha = datetime.datetime.now().strftime("%Y-%d-%m %H:%M:%S")
+        fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        Usuario = self.usuario_registrado
 
         # Guardar datos en la base de datos
         conn = sqlite3.connect('Montradb.db')
@@ -607,7 +610,7 @@ class SerialInterface:
             self.send_button.focus_set()
         else:
             # Mostrar datos en la tabla
-            self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha))
+            self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha, Usuario))
 
 
         # Realizar la solicitud POST al WebService
@@ -631,7 +634,7 @@ class SerialInterface:
         self.height_var.set("")  # Borra el contenido del campo Alto
         self.weight_var.set("")  # Borra el contenido del campo Peso
 
-        print(self.usuario_registrado)
+
     #Conteos exitoso y fallidos de envío
     def update_contadores(self):
         self.paquetes_enviados_label.config(text=f"Envíos exitosos: {self.paquetes_enviados}")
