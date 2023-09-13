@@ -26,7 +26,7 @@ class SerialInterface:
         self.root.title("MONTRA")
         root.iconbitmap('montra.ico')
         
-        self.texto_licencia="Desarrollado por Grupo Montra\nUso excluso para Deprisa\n\nLicencia: Deprisa Cartagena"
+        self.texto_licencia="Desarrollado por Grupo Montra\nUso exclusivo para Deprisa\n\nLicencia: Deprisa Cartagena"
         
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
