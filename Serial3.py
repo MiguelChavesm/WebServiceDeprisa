@@ -739,3 +739,4 @@ if __name__ == "__main__":
     root.resizable(False,False)
     app = SerialInterface(root)
     root.mainloop()
+#comentario prueba
