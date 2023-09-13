@@ -26,6 +26,8 @@ class SerialInterface:
         self.root.title("MONTRA")
         root.iconbitmap('montra.ico')
         
+        self.texto_licencia="Desarrollado por Grupo Montra\nUso excluso para Deprisa\n\nLicencia: Deprisa Cartagena"
+        
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
         self.medicion_tab = ttk.Frame(self.notebook)
@@ -179,18 +181,26 @@ class SerialInterface:
         self.label_montra2 = ttk.Label(self.medicion_tab, image=self.logo_montra2, background=self.colorbackground)
         self.label_montra2.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
         
+        
+        self.label_deprisa = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
+        self.label_deprisa.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
+        
         self.logo_cubiscan2 = tk.PhotoImage(file="Cubiscan_logo.png")
         self.logo_cubiscan2 = self.logo_cubiscan2.subsample(1, 1)
         self.label_cubiscan2 = ttk.Label(self.medicion_tab, image=self.logo_cubiscan2,background=self.colorbackground)
-        self.label_cubiscan2.grid(row=3, column=0, rowspan=3, padx=(10,20), sticky="n")
+        self.label_cubiscan2.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
+
+        # Botón de inicio de sesión
+        logout_image = customtkinter.CTkImage(Image.open("logout.png").resize((100,100), Image.Resampling.LANCZOS))
+        boton_logout = customtkinter.CTkButton(self.medicion_tab, text="Cerrar Sesión", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= logout_image, command=self.cerrar_sesion)
+        boton_logout.grid(row=5, column=0, columnspan=1, padx=(10,30), pady=5, sticky="new")
+
+        ttk.Label(self.medicion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 8)).grid(row=7, column=0, padx=(5,0), sticky="sw")
         
         
-        self.label_deprisa = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
-        self.label_deprisa.grid(row=4, column=0, rowspan=2, padx=(10,20), pady=10)
+        #self.cerrar_sesion_button = ttk.Button(self.medicion_tab, text="Cerrar Sesión", command=self.cerrar_sesion, fg=self.colorbackground)
+        #self.cerrar_sesion_button.grid(row=4, column=0, columnspan=1, padx=(10,30), pady=5, sticky="sew")
         
-        self.cerrar_sesion_button = ttk.Button(self.medicion_tab, text="Cerrar Sesión", command=self.cerrar_sesion)
-        self.cerrar_sesion_button.grid(row=4, column=0, columnspan=1, padx=(10,30), pady=5, sticky="sew")
-                
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=1, padx=10, pady=5, sticky="w")
         self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
         self.sku_entry.grid(row=0, column=2, padx=10, pady=0, ipadx=15)
@@ -383,20 +393,21 @@ class SerialInterface:
     #Abrir puerto seleccionado
     def abrir_puerto(self): 
         puerto_seleccionado = self.puertos_combobox.get()
-        try:
-            self.puerto_serial = serial.Serial(puerto_seleccionado, baudrate=9600)
-            self.puertos_combobox.configure(state="disabled")
-            self.abrir_puerto_button.configure(state="disabled")
-            self.cerrar_puerto_button.configure(state="enabled")
+        if puerto_seleccionado!="" :
+            try:
+                self.puerto_serial = serial.Serial(puerto_seleccionado, baudrate=9600)
+                self.puertos_combobox.configure(state="disabled")
+                self.abrir_puerto_button.configure(state="disabled")
+                self.cerrar_puerto_button.configure(state="enabled")
 
-            # Guardar el último puerto en el archivo config.ini
-            self.guardar_configuracion()
-            
-            self.data_thread = threading.Thread(target=self.leer_datos)
-            self.data_thread.start()
-        except Exception as e:
-            mensaje = f"Error al abrir el puerto: {e}"
-            messagebox.showerror("Error", mensaje)
+                # Guardar el último puerto en el archivo config.ini
+                self.guardar_configuracion()
+                
+                self.data_thread = threading.Thread(target=self.leer_datos)
+                self.data_thread.start()
+            except Exception as e:
+                mensaje = f"Error al abrir el puerto: {e}"
+                messagebox.showerror("Error", mensaje)
     
     #Cerrar el puerto
     def cerrar_puerto(self): 
