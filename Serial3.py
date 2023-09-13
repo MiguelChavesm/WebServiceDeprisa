@@ -151,6 +151,7 @@ class SerialInterface:
                 self.notebook.select(0)  # Cambiar a la pestaña de Medición
                 self.ventana_inicio_sesion.destroy()  # Cerrar la ventana de inicio de sesión
             self.root.deiconify()  # Mostrar la ventana principal nuevamente
+            self.sku_entry.focus_set()
         else:
             messagebox.showerror("Error", "Credenciales incorrectas. Intente nuevamente.")
             # Borra el contenido de los campos de entrada
@@ -204,7 +205,7 @@ class SerialInterface:
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=1, padx=10, pady=5, sticky="w")
         self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
         self.sku_entry.grid(row=0, column=2, padx=10, pady=0, ipadx=15)
-        self.sku_entry.focus_set()
+
         
         #medir_image = customtkinter.CTkImage(Image.open("medir3.png").resize((100,100), Image.Resampling.LANCZOS))
         #self.medir_button = customtkinter.CTkButton(self.medicion_tab, text="Medir", border_width=1, border_color="#D1CFCF", font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="lightblue", width=100, height=40, compound="right", image= medir_image, command=self.enviar_trama)
@@ -303,6 +304,8 @@ class SerialInterface:
             self.enviar_trama()
         elif self.is_sendbutton_focused:
             self.send_data()
+            self.sku_entry.focus_set()
+
     
     #Confirmar cursor en boton "medir" con variable en TRUE
     def on_button_focus_in(self, event): 
