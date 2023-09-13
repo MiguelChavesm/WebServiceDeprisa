@@ -64,7 +64,7 @@ class SerialInterface:
 
     #Verificar mac con la lista
     def verificar_mac(self):
-        direcciones_mac_permitidas = ["30:05:05:b8:bb:31", "00:11:22:33:44:55", "30:05:05:b8:bb:30"]  # Lista de direcciones MAC permitidas
+        direcciones_mac_permitidas = ["30:05:05:b8:bb:31", "00:11:22:33:44:55", "30:05:05:b8:bb:35"]  # Lista de direcciones MAC permitidas
         mac_actual = self.get_mac_address()  # Usa el método de obtener_mac() definido
         if mac_actual not in direcciones_mac_permitidas:
             self.cerrar_puerto()
