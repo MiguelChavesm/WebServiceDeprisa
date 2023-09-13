@@ -12,6 +12,10 @@ import sqlite3
 import openpyxl
 from pathlib import Path
 from tkinter import filedialog
+import numpy as np
+import customtkinter
+from PIL import Image, ImageTk
+
 
 
 
@@ -19,9 +23,10 @@ class SerialInterface:
     def __init__(self, root):
         self.root = root
         self.mostrar_ventana_inicio_sesion()
-        
-        self.root.title("Comunicación WebService Deprisa")
+        self.root.title("MONTRA")
         root.iconbitmap('montra.ico')
+        
+        self.texto_licencia="Desarrollado por Grupo Montra\nUso excluso para Deprisa\n\nLicencia: Deprisa Cartagena"
         
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
@@ -78,26 +83,48 @@ class SerialInterface:
     def mostrar_ventana_inicio_sesion(self):
         self.root.withdraw()  # Oculta la ventana principal
         self.ventana_inicio_sesion = tk.Toplevel(self.root)
-        self.ventana_inicio_sesion.title("Inicio de Sesión")
+        self.ventana_inicio_sesion.title("MONTRA")
         self.ventana_inicio_sesion.iconbitmap('montra.ico')
+        self.ventana_inicio_sesion.configure(bg="#FFFFFF")
+        self.ventana_inicio_sesion.resizable(False,False)
+        Fuente_inicio_sesion = ("Helvetica", 13)
+        # Cargar imagen del disco.
+        self.logo_montra = tk.PhotoImage(file="Logo_Montra.png")
+        self.logo_montra = self.logo_montra.subsample(1, 1)
+        # Insertarla en una etiqueta.
+        self.label_logo_montra = ttk.Label(self.ventana_inicio_sesion, image=self.logo_montra, background="#FFFFFF")
+        self.label_logo_montra.pack(padx=(60,60), pady=(20,0))
 
-        usuario_label = tk.Label(self.ventana_inicio_sesion, text="Usuario:")
-        usuario_label.pack()
-        self.usuario_entry = tk.Entry(self.ventana_inicio_sesion)
-        self.usuario_entry.pack()
+        self.logo_cubiscan = tk.PhotoImage(file="Cubiscan_logo.png")
+        self.logo_cubiscan = self.logo_cubiscan.subsample(1, 1)
+        # Insertarla en una etiqueta.
+        self.label_logo_cubiscan = ttk.Label(self.ventana_inicio_sesion, image=self.logo_cubiscan, background="#FFFFFF")
+        self.label_logo_cubiscan.pack()
+
+        
+        usuario_label = tk.Label(self.ventana_inicio_sesion, text="Usuario:", background="#FFFFFF", font=Fuente_inicio_sesion)
+        usuario_label.pack(padx=(50,0),pady=(20, 0), anchor="w")  # Agregar espacio arriba
+        self.usuario_entry = tk.Entry(self.ventana_inicio_sesion, borderwidth=2, font=Fuente_inicio_sesion, width=30, background="#E4E9EA")
+        self.usuario_entry.pack(padx=(50,50))
 
 
-        contrasena_label = tk.Label(self.ventana_inicio_sesion, text="Contraseña:")
-        contrasena_label.pack()
-        self.contrasena_entry = tk.Entry(self.ventana_inicio_sesion, show="*")  # Muestra asteriscos para ocultar la contraseña
-        self.contrasena_entry.pack()
+        contrasena_label = tk.Label(self.ventana_inicio_sesion, text="Contraseña:", background="#FFFFFF", font=Fuente_inicio_sesion)
+        contrasena_label.pack(padx=(50,0),pady=(20, 0), anchor="w")
+        self.contrasena_entry = tk.Entry(self.ventana_inicio_sesion, show="*", borderwidth=2, font=Fuente_inicio_sesion, width=30, background="#E4E9EA")  # Muestra asteriscos para ocultar la contraseña
+        self.contrasena_entry.pack(padx=(50,50))
 
         # Botón de inicio de sesión
-        boton_login = tk.Button(self.ventana_inicio_sesion, text="Iniciar Sesión", command=self.verificar_credenciales)
-        boton_login.pack()
-        
+        login_image = customtkinter.CTkImage(Image.open("login2.png").resize((100,100), Image.Resampling.LANCZOS))
+        boton_login = customtkinter.CTkButton(self.ventana_inicio_sesion, text="Iniciar Sesión", font=("Helvetica", 16), text_color="#000000", fg_color="#B1B3B6", hover_color="#828890", width=200, height=20, compound="left", image= login_image, command=self.verificar_credenciales)
+        boton_login.pack(pady=(20, 0))
         self.contrasena_entry.bind('<Return>', lambda event=None: self.verificar_credenciales())
-
+        
+        self.logo_deprisa = tk.PhotoImage(file="Deprisa_logo.png")
+        self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
+        # Insertarla en una etiqueta.
+        self.label_logo_deprisa = ttk.Label(self.ventana_inicio_sesion, image=self.logo_deprisa, background="#FFFFFF")
+        self.label_logo_deprisa.pack(pady=(50, 10))
+        
         
         self.ventana_inicio_sesion.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
         
@@ -144,36 +171,74 @@ class SerialInterface:
         self.weight_var = tk.StringVar()
         self.response_text = tk.StringVar()
 
-
-        ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
-        self.sku_entry.grid(row=0, column=1, padx=10, pady=5, ipadx=15)
-        self.sku_entry.focus_set()
-        self.medir_button = ttk.Button(self.medicion_tab, text="Medir", command=self.enviar_trama)
-        self.medir_button.grid(row=1, columnspan=2, padx=10, pady=5)
+        # Insertarla en una etiqueta.
+        self.colorbackground= "lightgrey"
+        self.background = ttk.Label(self.medicion_tab, background=self.colorbackground)
+        self.background.grid(row=0, column=0, rowspan=9,padx=(0,20), sticky="snew")
         
-        self.send_button = ttk.Button(self.medicion_tab, text="Enviar", command=self.send_data)
-        self.send_button.grid(row=2, columnspan=2, padx=10, pady=5)
+        self.logo_montra2 = tk.PhotoImage(file="Logo_Montra3.png")
+        self.logo_montra2 = self.logo_montra2.subsample(1, 1)
+        self.label_montra2 = ttk.Label(self.medicion_tab, image=self.logo_montra2, background=self.colorbackground)
+        self.label_montra2.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
+        
+        
+        self.label_deprisa = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
+        self.label_deprisa.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
+        
+        self.logo_cubiscan2 = tk.PhotoImage(file="Cubiscan_logo.png")
+        self.logo_cubiscan2 = self.logo_cubiscan2.subsample(1, 1)
+        self.label_cubiscan2 = ttk.Label(self.medicion_tab, image=self.logo_cubiscan2,background=self.colorbackground)
+        self.label_cubiscan2.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
 
-        ttk.Label(self.medicion_tab, text="Largo:").grid(row=0, column=2, padx=10, pady=5, sticky="w")
+        # Botón de inicio de sesión
+        logout_image = customtkinter.CTkImage(Image.open("logout.png").resize((100,100), Image.Resampling.LANCZOS))
+        boton_logout = customtkinter.CTkButton(self.medicion_tab, text="Cerrar Sesión", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= logout_image, command=self.cerrar_sesion)
+        boton_logout.grid(row=5, column=0, columnspan=1, padx=(10,30), pady=5, sticky="new")
+
+        ttk.Label(self.medicion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 8)).grid(row=7, column=0, padx=(5,0), sticky="sw")
+        
+        
+        #self.cerrar_sesion_button = ttk.Button(self.medicion_tab, text="Cerrar Sesión", command=self.cerrar_sesion, fg=self.colorbackground)
+        #self.cerrar_sesion_button.grid(row=4, column=0, columnspan=1, padx=(10,30), pady=5, sticky="sew")
+        
+        ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=1, padx=10, pady=5, sticky="w")
+        self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
+        self.sku_entry.grid(row=0, column=2, padx=10, pady=0, ipadx=15)
+        self.sku_entry.focus_set()
+        
+        #medir_image = customtkinter.CTkImage(Image.open("medir3.png").resize((100,100), Image.Resampling.LANCZOS))
+        #self.medir_button = customtkinter.CTkButton(self.medicion_tab, text="Medir", border_width=1, border_color="#D1CFCF", font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="lightblue", width=100, height=40, compound="right", image= medir_image, command=self.enviar_trama)
+        #self.medir_button.grid(row=1, rowspan=2, column=1, columnspan=2, padx=10, pady=0)
+        self.medir_button = ttk.Button(self.medicion_tab, text="Medir", command=self.enviar_trama)
+        self.medir_button.grid(row=1, rowspan=2, column=1, columnspan=2, padx=10, pady=0, sticky="n")
+        
+        
+        #enviar_image = customtkinter.CTkImage(Image.open("medir2.png").resize((100,100), Image.Resampling.LANCZOS))
+        #self.send_button = customtkinter.CTkButton(self.medicion_tab, text="Enviar", border_width=1, border_color="#D1CFCF", font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="lightblue", width=100, height=40, compound="right", image= enviar_image, command=self.send_data)
+        #self.send_button.grid(row=3, rowspan=1, column=1, columnspan=2, padx=10, pady=0)
+        self.send_button = ttk.Button(self.medicion_tab, text="Enviar",  compound="right", command=self.send_data)
+        self.send_button.grid(row=2, rowspan=1, column=1, columnspan=2 ,padx=10, pady=0, sticky="n")
+
+        ttk.Label(self.medicion_tab, text="Largo:").grid(row=0, column=3, padx=10, pady=5, sticky="w")
         self.largo_entry = ttk.Entry(self.medicion_tab, textvariable=self.length_var)
-        self.largo_entry.grid(row=0, column=3, padx=10, pady=5)
+        self.largo_entry.grid(row=0, column=4, padx=10, pady=5)
 
-        ttk.Label(self.medicion_tab, text="Ancho:").grid(row=1, column=2, padx=10, pady=5, sticky="w")
+        ttk.Label(self.medicion_tab, text="Ancho:").grid(row=1, column=3, padx=10, pady=5, sticky="w")
         self.ancho_entry = ttk.Entry(self.medicion_tab, textvariable=self.width_var)
-        self.ancho_entry.grid(row=1, column=3, padx=10, pady=5)
+        self.ancho_entry.grid(row=1, column=4, padx=10, pady=5)
 
-        ttk.Label(self.medicion_tab, text="Alto:").grid(row=2, column=2, padx=10, pady=5, sticky="w")
+        ttk.Label(self.medicion_tab, text="Alto:").grid(row=2, column=3, padx=10, pady=5, sticky="w")
         self.alto_entry = ttk.Entry(self.medicion_tab, textvariable=self.height_var)
-        self.alto_entry.grid(row=2, column=3, padx=10, pady=5)
+        self.alto_entry.grid(row=2, column=4, padx=10, pady=5)
 
-        ttk.Label(self.medicion_tab, text="Peso:").grid(row=3, column=2, padx=10, pady=5, sticky="w")
+        ttk.Label(self.medicion_tab, text="Peso:").grid(row=3, column=3, padx=10, pady=5, sticky="w")
         self.peso_entry = ttk.Entry(self.medicion_tab, textvariable=self.weight_var)
-        self.peso_entry.grid(row=3, column=3, padx=10, pady=5)
+        self.peso_entry.grid(row=3, column=4, padx=10, pady=5)
 
-        ttk.Label(self.medicion_tab, text="Respuesta:").grid(row=8, column=0, columnspan=2, padx=5, pady=10, sticky="w")
-        self.response_entry = ttk.Entry(self.medicion_tab, textvariable=self.response_text, state="readonly")
-        self.response_entry.grid(row=9, column=0, columnspan=3, pady=5, sticky="nsew")
+        ttk.Label(self.medicion_tab, text="Respuesta:").grid(row=5, column=1, columnspan=2, padx=5, sticky="w")
+        self.response_entry = tk.Text(self.medicion_tab, state="disabled", background="#FCFFD0", font=("Arial", 10))
+        self.response_entry.config(width=20, height=5)
+        self.response_entry.grid(row=6, column=1, columnspan=20, pady=5, sticky="nsew")
         
         # Crear la tabla para mostrar los datos
         columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Usuario')
@@ -190,7 +255,7 @@ class SerialInterface:
             self.tree.column('Usuario', width=80)
             #self.tree.column(col, width=100)
 
-        self.tree.grid(row=10, column=0, columnspan=15)
+        self.tree.grid(row=4, column=1, columnspan=20, pady=(10,10))
         
         # Aplicar un estilo con bordes a la tabla
         style = ttk.Style()
@@ -200,19 +265,8 @@ class SerialInterface:
         
         # Crear barras de desplazamiento
         y_scroll = ttk.Scrollbar(self.medicion_tab, orient="vertical", command=self.tree.yview)
-        y_scroll.grid(row=10, column=16, sticky='ns')
+        y_scroll.grid(row=4, column=21, sticky='ns')
         self.tree.configure(yscrollcommand=y_scroll.set)
-
-        x_scroll = ttk.Scrollbar(self.medicion_tab, orient="horizontal", command=self.tree.xview)
-        x_scroll.grid(row = 11, column=0, columnspan=16, sticky = tk.W+tk.E)
-        self.tree.configure(xscrollcommand=x_scroll.set)
-
-        #Etiquetas del contador
-        self.paquetes_enviados_label = tk.Label(self.medicion_tab, text="Envíos exitosos: 0", font=("verdama", 10))
-        self.paquetes_enviados_label.grid(row=3, column=0, columnspan=2)
-
-        self.paquetes_no_enviados_label = tk.Label(self.medicion_tab, text="Envíos fallidos: 0", font=("Verdana", 10))
-        self.paquetes_no_enviados_label.grid(row=4,column=0, columnspan=2)
         
         self.medir_button.bind('<Return>', self.on_enter_press)
         self.medir_button.bind('<FocusIn>', self.on_button_focus_in)
@@ -224,12 +278,14 @@ class SerialInterface:
         
         self.sku_entry.bind("<Return>", self.cambiar_foco_a_medir)
         
-        self.cerrar_sesion_button = ttk.Button(self.medicion_tab, text="Cerrar Sesión", command=self.cerrar_sesion)
-        self.cerrar_sesion_button.grid(row=5, column=0, columnspan=2, padx=10, pady=5)
+        #Etiquetas del contador
+        self.paquetes_enviados_label = tk.Label(self.medicion_tab, text="Envíos exitosos: 0", font=("verdama", 10), fg='green')
+        self.paquetes_enviados_label.grid(row=7, column=1, columnspan=2)
 
+        self.paquetes_no_enviados_label = tk.Label(self.medicion_tab, text="Envíos fallidos: 0", font=("Verdana", 10), fg='red')
+        self.paquetes_no_enviados_label.grid(row=7,column=3, columnspan=2)
         
-        #exportar_button = tk.Button(self.medicion_tab, text="Exportar a Excel", command=self.exportar_excel)
-        #exportar_button.grid(row=12, column=0, columnspan=2)
+
 
     #Función para funcion del boton de cerrar sesión
     def cerrar_sesion(self):
@@ -275,50 +331,53 @@ class SerialInterface:
         self.machine_name_var = tk.StringVar()
         self.ruta_exportacion = tk.StringVar()
         
-
-        ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*")
-        url_entry.grid(row=0, column=1, padx=10, pady=5, sticky="w")
-
-        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var, show="*")
-        username_entry.grid(row=1, column=1, padx=10, pady=5, sticky="w")
-
-        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
-        password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password_var, show="*")
-        password_entry.grid(row=2, column=1, padx=10, pady=5, sticky="w")
-
-        ttk.Label(self.configuracion_tab, text="Nombre de la Máquina:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        ttk.Label(self.configuracion_tab, text="DATOS WEB SERVICE:",font=("Helvetica", 13)).grid(row=0, column=0, columnspan=2, padx=10, pady=(20,5), sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, padx=(10,0), column=0, pady=5, sticky="w")
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*", width=25)
+        url_entry.grid(row=1, column=1, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Máquina:").grid(row=1, column=2, padx=(20,0), pady=5, sticky="w")
         machine_name_entry = ttk.Entry(self.configuracion_tab, textvariable=self.machine_name_var)
-        machine_name_entry.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+        machine_name_entry.grid(row=1, column=3, pady=5, sticky="w")
         
-        ttk.Label(self.configuracion_tab, text="Ruta exportación").grid(row=4, column=0, padx=10, pady=5, sticky="w")
-        ruta_exportacion_entry = ttk.Entry(self.configuracion_tab, textvariable=self.ruta_exportacion)
-        ruta_exportacion_entry.grid(row=4, column=1, padx=10, pady=5, sticky="w")
-        
-        self.actualizar_puertos_button = ttk.Button(self.configuracion_tab, text="Carpeta", command=self.seleccionar_carpeta)
-        self.actualizar_puertos_button.grid(row=4, column=2, padx=10, pady=5)
-                
-        ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:").grid(row=5, column=0, padx=10, pady=5, sticky="w")
-        self.puertos_combobox = ttk.Combobox(self.configuracion_tab)
-        self.puertos_combobox.grid(row=5, column=1, padx=10, pady=5)
+        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=2, column=0, padx=(10,0), pady=5, sticky="w")
+        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var, show="*")
+        username_entry.grid(row=2, column=1, pady=5, sticky="w")
 
-        self.actualizar_puertos_button = ttk.Button(self.configuracion_tab, text="Actualizar", command=self.listar_puertos)
-        self.actualizar_puertos_button.grid(row=5, column=2, padx=10, pady=5)
+        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=2, column=2, padx=(20,0), pady=5, sticky="w")
+        password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password_var, show="*")
+        password_entry.grid(row=2, column=3, pady=5, sticky="w")
+
+        ttk.Label(self.configuracion_tab, text="EXPORTACIÓN DEL ARCHIVO",font=("Helvetica", 13)).grid(row=3, column=0, columnspan=3, padx=10, pady=(20,5), sticky="w")
+        ttk.Label(self.configuracion_tab, text="Ruta exportación:").grid(row=4, column=0, padx=(10,0), pady=5, sticky="w")
+        ruta_exportacion_entry = ttk.Entry(self.configuracion_tab, textvariable=self.ruta_exportacion, width=40)
+        ruta_exportacion_entry.grid(row=4, column=1, columnspan=2, pady=5, sticky="w")
+        
+        self.seleccionar_carpeta_button = ttk.Button(self.configuracion_tab, text="Seleccionar ruta", command=self.seleccionar_carpeta)
+        self.seleccionar_carpeta_button.grid(row=4, column=2, columnspan=4, padx=(125,0), pady=5, sticky="w")
+
+        ttk.Label(self.configuracion_tab, text="CONFIGURACIÓN DE COMUNICACIÓN:",font=("Helvetica", 13)).grid(row=6, column=0, columnspan=3, padx=10, pady=(20,5), sticky="w")
+        ttk.Label(self.configuracion_tab, text="PuertoS COM disponibles:").grid(row=7,column=0, padx=(10,0), pady=5, sticky="w")
+        self.puertos_combobox = ttk.Combobox(self.configuracion_tab)
+        self.puertos_combobox.grid(row=7, column=1, padx=5, pady=5)
+
+        self.actualizar_puertos_button = ttk.Button(self.configuracion_tab, text="Actualizar puertos", command=self.listar_puertos)
+        self.actualizar_puertos_button.grid(row=7, column=2, padx=5, pady=5, sticky="w")
 
         self.abrir_puerto_button = ttk.Button(self.configuracion_tab, text="Abrir Puerto", command=self.abrir_puerto)
-        self.abrir_puerto_button.grid(row=6, column=1, padx=10, pady=5)
+        self.abrir_puerto_button.grid(row=8, column=1, padx=5, pady=5,  sticky="w")
 
         self.cerrar_puerto_button = ttk.Button(self.configuracion_tab, text="Cerrar Puerto", command=self.cerrar_puerto)
-        self.cerrar_puerto_button.grid(row=7, column=1, padx=10, pady=5)
+        self.cerrar_puerto_button.grid(row=8, column=1, padx=5, pady=5, sticky="e")
         self.cerrar_puerto_button.configure(state="disabled")
         
         self.guardar_config_button = ttk.Button(self.configuracion_tab, text="Guardar Configuración", command=self.guardar_configuracion)
-        self.guardar_config_button.grid(row=8, columnspan=2, padx=10, pady=5)
+        self.guardar_config_button.grid(row=9, columnspan=2, padx=10, pady=5)
 
         #Botón para crear usuarios
         crear_usuario_button = ttk.Button(self.configuracion_tab, text="Crear usuario", command=self.abrir_ventana_crear_usuario)
-        crear_usuario_button.grid(row=9, columnspan=2, padx=10, pady=5)
+        crear_usuario_button.grid(row=10, columnspan=2, padx=10, pady=5)
 
     #Configuración de boton para escoger carpeta de exportación
     def seleccionar_carpeta(self):
@@ -334,20 +393,21 @@ class SerialInterface:
     #Abrir puerto seleccionado
     def abrir_puerto(self): 
         puerto_seleccionado = self.puertos_combobox.get()
-        try:
-            self.puerto_serial = serial.Serial(puerto_seleccionado, baudrate=9600)
-            self.puertos_combobox.configure(state="disabled")
-            self.abrir_puerto_button.configure(state="disabled")
-            self.cerrar_puerto_button.configure(state="enabled")
+        if puerto_seleccionado!="" :
+            try:
+                self.puerto_serial = serial.Serial(puerto_seleccionado, baudrate=9600)
+                self.puertos_combobox.configure(state="disabled")
+                self.abrir_puerto_button.configure(state="disabled")
+                self.cerrar_puerto_button.configure(state="enabled")
 
-            # Guardar el último puerto en el archivo config.ini
-            self.guardar_configuracion()
-            
-            self.data_thread = threading.Thread(target=self.leer_datos)
-            self.data_thread.start()
-        except Exception as e:
-            mensaje = f"Error al abrir el puerto: {e}"
-            messagebox.showerror("Error", mensaje)
+                # Guardar el último puerto en el archivo config.ini
+                self.guardar_configuracion()
+                
+                self.data_thread = threading.Thread(target=self.leer_datos)
+                self.data_thread.start()
+            except Exception as e:
+                mensaje = f"Error al abrir el puerto: {e}"
+                messagebox.showerror("Error", mensaje)
     
     #Cerrar el puerto
     def cerrar_puerto(self): 
@@ -447,10 +507,9 @@ class SerialInterface:
     def abrir_ventana_crear_usuario(self):
         # Ventana emergente para cambiar la contraseña
         self.crear_usuario_window = tk.Toplevel(self.root)
-        self.crear_usuario_window.title("Cambiar Contraseña")
+        self.crear_usuario_window.title("Crear usuario")
         self.crear_usuario_window.iconbitmap('montra.ico')
         self.crear_usuario_window.grab_set()
-
 
         ttk.Label(self.crear_usuario_window, text="Usuario:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         nombre_usuario_entry = ttk.Entry(self.crear_usuario_window)
@@ -618,14 +677,21 @@ class SerialInterface:
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, data=json.dumps(data), headers=headers, auth=(self.username_var.get(), self.password_var.get()))
         
+        self.response_entry.tag_config('warning', foreground="red")
+        self.response_entry.tag_config('ok', foreground="green")
         #contador
         if response.status_code == 200:
             self.paquetes_enviados += 1
-            
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
+            self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente   
         else:
             self.paquetes_no_enviados += 1
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
+            self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente  
         # Actualizar la respuesta en la interfaz
-        self.response_text.set(response.text)
+        #self.response_text.set(response.text)
         #actualizar contadores
         self.update_contadores()
         self.sku_var.set("")     # Borra el contenido del campo SKU
