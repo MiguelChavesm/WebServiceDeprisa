@@ -334,7 +334,7 @@ class SerialInterface:
         ttk.Label(self.configuracion_tab, text="DATOS WEB SERVICE:",font=("Helvetica", 13)).grid(row=0, column=0, columnspan=2, padx=10, pady=(20,5), sticky="w")
         
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, padx=(10,0), column=0, pady=5, sticky="w")
-        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*", width=25)
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*", width=27)
         url_entry.grid(row=1, column=1, pady=5, sticky="w")
         
         ttk.Label(self.configuracion_tab, text="Máquina:").grid(row=1, column=2, padx=(20,0), pady=5, sticky="w")
