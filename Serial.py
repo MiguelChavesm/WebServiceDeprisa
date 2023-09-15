@@ -13,8 +13,7 @@ import sqlite3
 import openpyxl
 from pathlib import Path
 from tkinter import filedialog
-import customtkinter
-from PIL import Image
+
 
 
 
@@ -33,8 +32,9 @@ class SerialInterface:
         self.notebook.pack(fill="both", expand=True)
         self.medicion_tab = ttk.Frame(self.notebook)
         self.configuracion_tab = ttk.Frame(self.notebook)
-        self.notebook.add(self.medicion_tab, text="Medición", state="disabled")  # Inicialmente deshabilitada
-        self.notebook.add(self.configuracion_tab, text="Configuración", state="disabled")  # Inicialmente deshabilitada
+        self.notebook.add(self.medicion_tab, text="Medición", state="normal")  # Inicialmente deshabilitada
+        self.notebook.add(self.configuracion_tab, text="Configuración", state="normal")  # Inicialmente deshabilitada
+        self.notebook.pack()
         self.create_medicion_tab()
         self.create_configuracion_tab()
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
@@ -91,9 +91,9 @@ class SerialInterface:
         self.contrasena_entry.pack(padx=(50,50))
 
         # Botón de inicio de sesión
-        login_image = customtkinter.CTkImage(Image.open("Icons/login2.png").resize((100,100), Image.Resampling.LANCZOS))
-        boton_login = customtkinter.CTkButton(self.ventana_inicio_sesion, text="Iniciar Sesión", font=("Helvetica", 16), text_color="#000000", fg_color="#B1B3B6", hover_color="#828890", width=200, height=20, compound="left", image= login_image, command=self.verificar_credenciales)
-        boton_login.pack(pady=(20, 0))
+        #login_image = customtkinter.CTkImage(Image.open("Icons/login2.png").resize((100,100), Image.Resampling.LANCZOS))
+        #boton_login = customtkinter.CTkButton(self.ventana_inicio_sesion, text="Iniciar Sesión", font=("Helvetica", 16), text_color="#000000", fg_color="#B1B3B6", hover_color="#828890", width=200, height=20, compound="left", image= login_image, command=self.verificar_credenciales)
+        #boton_login.pack(pady=(20, 0))
         self.contrasena_entry.bind('<Return>', lambda event=None: self.verificar_credenciales())
         
         self.logo_deprisa = tk.PhotoImage(file="Icons/Deprisa_logo.png")
@@ -158,19 +158,20 @@ class SerialInterface:
         self.label_montra2 = ttk.Label(self.medicion_tab, image=self.logo_montra2, background=self.colorbackground)
         self.label_montra2.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
         
-        
-        self.label_deprisa = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
-        self.label_deprisa.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
-        
+
         self.logo_cubiscan2 = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
         self.logo_cubiscan2 = self.logo_cubiscan2.subsample(1, 1)
         self.label_cubiscan2 = ttk.Label(self.medicion_tab, image=self.logo_cubiscan2,background=self.colorbackground)
         self.label_cubiscan2.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
 
+                
+        self.label_deprisa = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
+        self.label_deprisa.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
+        
         # Botón de cerrar de sesión
-        logout_image = customtkinter.CTkImage(Image.open("Icons/logout.png").resize((100,100), Image.Resampling.LANCZOS))
-        boton_logout = customtkinter.CTkButton(self.medicion_tab, text="Cerrar Sesión", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= logout_image, command=self.cerrar_sesion)
-        boton_logout.grid(row=5, column=0, columnspan=1, padx=(10,30), pady=5, sticky="new")
+        #logout_image = customtkinter.CTkImage(Image.open("Icons/logout.png").resize((100,100), Image.Resampling.LANCZOS))
+        #boton_logout = customtkinter.CTkButton(self.medicion_tab, text="Cerrar Sesión", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= logout_image, command=self.cerrar_sesion)
+        #boton_logout.grid(row=5, column=0, columnspan=1, padx=(10,30), pady=5, sticky="new")
 
         ttk.Label(self.medicion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=6, rowspan=1, column=0, padx=(5,0), sticky="w")
         
@@ -314,15 +315,15 @@ class SerialInterface:
         
         separacion_borde=(0,0)
     
-        save_image = customtkinter.CTkImage(Image.open("Icons/save.png").resize((100,100), Image.Resampling.LANCZOS))
-        boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
-        boton_save.grid(row=9, column=0, padx=(10,30), pady=10)
+        #save_image = customtkinter.CTkImage(Image.open("Icons/save.png").resize((100,100), Image.Resampling.LANCZOS))
+        #boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
+        #boton_save.grid(row=9, column=0, padx=(10,30), pady=10)
 
 
         #Botón para crear usuarios
-        crear_usuario_image = customtkinter.CTkImage(Image.open("Icons/login.png").resize((100,100), Image.Resampling.LANCZOS))
-        boton_crear_usuario = customtkinter.CTkButton(self.configuracion_tab, text="Crear usuario", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= crear_usuario_image, command=self.abrir_ventana_crear_usuario)
-        boton_crear_usuario.grid(row=10, column=0, padx=(10,30), pady=(5,5))
+        #crear_usuario_image = customtkinter.CTkImage(Image.open("Icons/login.png").resize((100,100), Image.Resampling.LANCZOS))
+        #boton_crear_usuario = customtkinter.CTkButton(self.configuracion_tab, text="Crear usuario", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= crear_usuario_image, command=self.abrir_ventana_crear_usuario)
+        #boton_crear_usuario.grid(row=10, column=0, padx=(10,30), pady=(5,5))
         
         ttk.Label(self.configuracion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=12, rowspan=1, column=0, pady=(5,40), padx=(5,20), sticky="w")
         ttk.Label(self.configuracion_tab, text="DATOS WEB SERVICE:",font=("Helvetica", 13)).grid(row=0, column=1, columnspan=2, padx=separacion_borde, pady=(20,5), sticky="w")
@@ -349,9 +350,9 @@ class SerialInterface:
         ruta_exportacion_entry.grid(row=6, column=2, columnspan=2, pady=5, sticky="w")
         
         
-        seleccionar_ruta_image = customtkinter.CTkImage(Image.open("Icons/folder.png").resize((100,100), Image.Resampling.LANCZOS))
-        seleccionar_carpeta_button = customtkinter.CTkButton(self.configuracion_tab, text="", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=20, height=20, compound="left", image= seleccionar_ruta_image, command=self.seleccionar_carpeta)
-        seleccionar_carpeta_button.grid(row=6, column=3, columnspan=4, padx=(125,0), pady=5, sticky="w")
+        #seleccionar_ruta_image = customtkinter.CTkImage(Image.open("Icons/folder.png").resize((100,100), Image.Resampling.LANCZOS))
+        #seleccionar_carpeta_button = customtkinter.CTkButton(self.configuracion_tab, text="", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=20, height=20, compound="left", image= seleccionar_ruta_image, command=self.seleccionar_carpeta)
+        #seleccionar_carpeta_button.grid(row=6, column=3, columnspan=4, padx=(125,0), pady=5, sticky="w")
         
         ttk.Label(self.configuracion_tab, text="CONFIGURACIÓN DE COMUNICACIÓN:",font=("Helvetica", 13)).grid(row=8, column=1, columnspan=3, padx=separacion_borde, pady=(20,5), sticky="w")
         ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:").grid(row=9,column=1, padx=separacion_borde, pady=5, sticky="w")

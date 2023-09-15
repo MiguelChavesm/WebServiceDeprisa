@@ -46,7 +46,7 @@ class SerialInterface:
         self.cargar_configuracion()
         
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
-        self.fecha_limite = (2023, 10, 15, 13, 45)
+        self.fecha_limite = (2023, 9, 15, 13, 45)
         
         self.verificar_fecha_limite_periodicamente()
         
@@ -769,7 +769,7 @@ class SerialInterface:
         # Guardar datos en la base de datos
         conn = sqlite3.connect('Montradb.db')
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO Usuarios (sku, largo, ancho, alto, peso, fecha, Usuario) VALUES (?, ?, ?, ?, ?, ?, ?)', (sku, largo, ancho, alto, peso, fecha, Usuario))
+        cursor.execute('INSERT INTO Montra (sku, largo, ancho, alto, peso, fecha) VALUES (?, ?, ?, ?,?, ?)', (sku, largo, ancho, alto, peso, fecha))
         conn.commit()
         conn.close()
         
@@ -855,4 +855,3 @@ if __name__ == "__main__":
     root.resizable(False,False)
     app = SerialInterface(root)
     root.mainloop()
-#comentario prueba

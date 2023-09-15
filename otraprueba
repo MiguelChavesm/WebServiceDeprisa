@@ -1,25 +1,301 @@
+import serial
+import serial.tools.list_ports
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox, simpledialog
+import threading
+import requests
+import json
+import datetime
+import configparser
+import os
+import time
+import sys
+import uuid
+import sqlite3
+import openpyxl
+from pathlib import Path
+from tkinter import filedialog
+import customtkinter
+from PIL import Image
 
-def actualizar_combobox():
-    perfil_acceso = perfil_var.get()
-    
-    # Borra todas las opciones actuales del Combobox
-    acceso_combobox['values'] = []
-    
-    if perfil_acceso == 1:
-        acceso_combobox['values'] = ["ADMINISTRADOR", "OPERARIO"]
-    elif perfil_acceso == 2:
-        acceso_combobox['values'] = ["ADMINISTRADOR", "SUPERUSUARIO", "OPERARIO"]
 
-root = tk.Tk()
+class SerialInterface:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Web Service Client")
+        root.iconbitmap('Icons/montra.ico')
 
-perfil_var = tk.IntVar()  # Variable que almacena el perfil de acceso
-perfil_var.set(2)  # Puedes cambiar esto según el perfil de acceso actual
+        # Crear pestañas
+        self.notebook = ttk.Notebook(root)
+        self.medicion_tab = ttk.Frame(self.notebook)
+        self.configuracion_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.medicion_tab, text="Enviar Datos")
+        self.notebook.add(self.create_configuracion_tab, text="Configuración")
+        self.notebook.pack(fill="both", expand=True)
+        self.create_medicion_tab()
+        self.create_configuracion_tab()
+        
+        self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
 
-acceso_combobox = ttk.Combobox(root, state="readonly")
-acceso_combobox.grid(row=0, column=0)
+        #print(self.get_mac_address())
 
-actualizar_combobox()  # Actualiza el Combobox según el perfil de acceso inicial
 
-root.mainloop()
+#CREACION DE METODO DE CIERRE DE APLICACIÓN.
+    def cerrar_aplicacion(self):
+        self.exportar_excel()
+        self.exportar_log()
+        self.root.destroy()  # Cerrar la aplicación
+
+#CREACIÓN DE VENTANA DE MEDICIÓN
+    def create_medicion_tab(self):
+        self.sku_var = tk.StringVar()
+        self.length_var = tk.StringVar()
+        self.width_var = tk.StringVar()
+        self.height_var = tk.StringVar()
+        self.weight_var = tk.StringVar()
+        self.response_text = tk.StringVar()
+
+        # Insertarla en una etiqueta.
+        self.colorbackground= "lightgrey"
+        self.background = ttk.Label(self.medicion_tab, background=self.colorbackground)
+        self.background.grid(row=0, column=0, rowspan=9,padx=(0,20), sticky="snew")
+        
+        self.logo_montra2 = tk.PhotoImage(file="Icons/Logo_Montra3.png")
+        self.logo_montra2 = self.logo_montra2.subsample(1, 1)
+        self.label_montra2 = ttk.Label(self.medicion_tab, image=self.logo_montra2, background=self.colorbackground)
+        self.label_montra2.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
+        
+        self.logo_deprisa = tk.PhotoImage(file="Icons/Deprisa_logo.png")
+        self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
+        self.label_deprisa1 = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
+        self.label_deprisa1.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
+        
+        self.logo_cubiscan2 = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
+        self.logo_cubiscan2 = self.logo_cubiscan2.subsample(1, 1)
+        self.label_cubiscan2 = ttk.Label(self.medicion_tab, image=self.logo_cubiscan2,background=self.colorbackground)
+        self.label_cubiscan2.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
+
+        # Botón de cerrar de sesión
+        ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=1, padx=10, pady=5, sticky="w")
+        self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
+        self.sku_entry.grid(row=0, column=2, padx=10, pady=0, ipadx=15)
+
+        self.send_button = ttk.Button(self.medicion_tab, text="Enviar",  compound="right", command=self.send_data)
+        self.send_button.grid(row=2, rowspan=1, column=1, columnspan=2 ,padx=10, pady=0, sticky="n")
+
+        ttk.Label(self.medicion_tab, text="Largo:").grid(row=0, column=3, padx=10, pady=5, sticky="w")
+        self.largo_entry = ttk.Entry(self.medicion_tab, textvariable=self.length_var)
+        self.largo_entry.grid(row=0, column=4, padx=10, pady=5)
+
+        ttk.Label(self.medicion_tab, text="Ancho:").grid(row=1, column=3, padx=10, pady=5, sticky="w")
+        self.ancho_entry = ttk.Entry(self.medicion_tab, textvariable=self.width_var)
+        self.ancho_entry.grid(row=1, column=4, padx=10, pady=5)
+
+        ttk.Label(self.medicion_tab, text="Alto:").grid(row=2, column=3, padx=10, pady=5, sticky="w")
+        self.alto_entry = ttk.Entry(self.medicion_tab, textvariable=self.height_var)
+        self.alto_entry.grid(row=2, column=4, padx=10, pady=5)
+
+        ttk.Label(self.medicion_tab, text="Peso:").grid(row=3, column=3, padx=10, pady=5, sticky="w")
+        self.peso_entry = ttk.Entry(self.medicion_tab, textvariable=self.weight_var)
+        self.peso_entry.grid(row=3, column=4, padx=10, pady=5)
+
+        ttk.Label(self.medicion_tab, text="Respuesta:").grid(row=5, column=1, columnspan=2, padx=5, sticky="w")
+        self.response_entry = tk.Text(self.medicion_tab, state="disabled", background="#FCFFD0", font=("Arial", 10))
+        self.response_entry.config(width=20, height=5)
+        self.response_entry.grid(row=6, column=1, columnspan=20, pady=5, sticky="nsew")
+
+        
+        # Crear la tabla para mostrar los datos
+        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Usuario')
+        self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
+
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column('Sku', width=200)
+            self.tree.column('Largo', width=50)
+            self.tree.column('Ancho', width=50)
+            self.tree.column('Alto', width=50)
+            self.tree.column('Peso', width=50)
+            self.tree.column('Fecha', width=130)
+            self.tree.column('Usuario', width=80)
+            #self.tree.column(col, width=100)
+
+        self.tree.grid(row=4, column=1, columnspan=20, pady=(10,10))
+        
+        # Aplicar un estilo con bordes a la tabla
+        style = ttk.Style()
+        style.configure("Treeview", font=('Helvetica', 9), rowheight=20)
+        style.configure("Treeview.Heading", font=('Helvetica', 9))
+        style.configure("Treeview.Treeview", borderwidth=1)  # Esto añade bordes alrededor de cada celda
+        
+        # Crear barras de desplazamiento
+        y_scroll = ttk.Scrollbar(self.medicion_tab, orient="vertical", command=self.tree.yview)
+        y_scroll.grid(row=4, column=21, sticky='ns')
+        self.tree.configure(yscrollcommand=y_scroll.set)
+        #Etiquetas del contador
+        self.paquetes_enviados_label = tk.Label(self.medicion_tab, text="Envíos exitosos: 0", font=("verdama", 10), fg='green')
+        self.paquetes_enviados_label.grid(row=7, column=1, columnspan=2)
+
+        self.paquetes_no_enviados_label = tk.Label(self.medicion_tab, text="Envíos fallidos: 0", font=("Verdana", 10), fg='red')
+        self.paquetes_no_enviados_label.grid(row=7,column=3, columnspan=2)
+
+
+#CREACIÓN DE VENTANA DE CONFIGURACIÓN
+    def create_configuracion_tab(self):
+
+        self.url_var = tk.StringVar()
+        self.username_var = tk.StringVar()
+        self.password_var = tk.StringVar()
+        self.machine_name_var = tk.StringVar()
+        self.ruta_exportacion = tk.StringVar()
+        
+        # Insertarla en una etiqueta.
+        self.colorbackground= "lightgrey"
+        self.background = ttk.Label(self.configuracion_tab, background=self.colorbackground)
+        self.background.grid(row=0, column=0, rowspan=20,padx=(0,20), sticky="snew")
+        
+        self.label_montra3 = ttk.Label(self.configuracion_tab, image=self.logo_montra2, background=self.colorbackground)
+        self.label_montra3.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
+        
+        self.label_deprisa1 = ttk.Label(self.configuracion_tab, image=self.logo_deprisa, background=self.colorbackground)
+        self.label_deprisa1.grid(row=6, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
+
+        self.label_cubiscan3 = ttk.Label(self.configuracion_tab, image=self.logo_cubiscan2,background=self.colorbackground)
+        self.label_cubiscan3.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
+        
+        separacion_borde=(0,0)
+
+        ttk.Label(self.configuracion_tab, text="DATOS WEB SERVICE:",font=("Helvetica", 13)).grid(row=0, column=1, columnspan=2, padx=separacion_borde, pady=(20,5), sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, padx=separacion_borde, column=1, pady=5, sticky="w")
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*", width=27)
+        url_entry.grid(row=1, column=2, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Máquina:").grid(row=4, column=1, padx=separacion_borde, pady=5, sticky="w")
+        machine_name_entry = ttk.Entry(self.configuracion_tab, textvariable=self.machine_name_var)
+        machine_name_entry.grid(row=4, column=2, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=2, column=1, padx=separacion_borde, pady=5, sticky="w")
+        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var, show="*")
+        username_entry.grid(row=2, column=2, pady=5, sticky="w")
+
+        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=3, column=1, padx=separacion_borde, pady=5, sticky="w")
+        password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password_var, show="*")
+        password_entry.grid(row=3, column=2, pady=5, sticky="w")
+
+        ttk.Label(self.configuracion_tab, text="EXPORTACIÓN DEL ARCHIVO",font=("Helvetica", 13)).grid(row=5, column=1, columnspan=3, padx=separacion_borde, pady=(20,5), sticky="w")
+        ttk.Label(self.configuracion_tab, text="Ruta exportación:").grid(row=6, column=1, padx=separacion_borde, pady=5, sticky="w")
+        ruta_exportacion_entry = ttk.Entry(self.configuracion_tab, textvariable=self.ruta_exportacion, width=40)
+        ruta_exportacion_entry.grid(row=6, column=2, columnspan=2, pady=5, sticky="w")
+        
+        
+        seleccionar_ruta_image = customtkinter.CTkImage(Image.open("Icons/folder.png").resize((100,100), Image.Resampling.LANCZOS))
+        seleccionar_carpeta_button = customtkinter.CTkButton(self.configuracion_tab, text="", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=20, height=20, compound="left", image= seleccionar_ruta_image, command=self.seleccionar_carpeta)
+        seleccionar_carpeta_button.grid(row=6, column=3, columnspan=4, padx=(125,0), pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="CONFIGURACIÓN DE COMUNICACIÓN:",font=("Helvetica", 13)).grid(row=8, column=1, columnspan=3, padx=separacion_borde, pady=(20,5), sticky="w")
+        ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:").grid(row=9,column=1, padx=separacion_borde, pady=5, sticky="w")
+        self.puertos_combobox = ttk.Combobox(self.configuracion_tab)
+        self.puertos_combobox.grid(row=9, column=2, padx=5, pady=5)
+
+
+    #Configuración de boton para escoger carpeta de exportación
+    def seleccionar_carpeta(self):
+        folder_selected = filedialog.askdirectory(title="Seleccione una carpeta de destino")
+        self.ruta_exportacion.set(folder_selected)
+
+
+    #Configuración del envío de estructura JSON
+    def send_data(self):
+        # Obtener los valores de los campos
+        sku = self.sku_var.get()
+        largo = self.length_var.get()
+        ancho = self.width_var.get()
+        alto = self.height_var.get()
+        peso = self.weight_var.get()
+        fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        Usuario = self.usuario_registrado
+
+        # Guardar datos en la base de datos
+        conn = sqlite3.connect('Montradb.db')
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO Usuarios (sku, largo, ancho, alto, peso, fecha, Usuario) VALUES (?, ?, ?, ?, ?, ?, ?)', (sku, largo, ancho, alto, peso, fecha, Usuario))
+        conn.commit()
+        conn.close()
+        
+        # Construir el JSON con los datos ingresados
+        data = {
+            "machine_pid": self.machine_name_var.get(),
+            "code": self.sku_var.get(),
+            "measure_date": fecha,
+            "length": self.length_var.get(),
+            "width": self.width_var.get(),
+            "heigth": self.height_var.get(),
+            "weigth": self.weight_var.get(),
+            "unit_type": "cm"
+        }
+        
+        # Verificar si alguno de los campos está en 0
+        if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' or peso <= '0':
+            self.send_button.focus_set()
+            messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
+            return  # No se envía la información si algún campo es 0
+        elif sku == "" or largo == "" or alto == "" or ancho == "" or peso=="":
+            self.send_button.focus_set()
+        else:
+            # Mostrar datos en la tabla
+            self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha, Usuario))
+
+
+        self.response_entry.tag_config('warning', foreground="red")
+        self.response_entry.tag_config('ok', foreground="green")
+        # Realizar la solicitud POST al WebService
+        if self.verificar_conexion_internet():
+            url = self.url_var.get()
+            headers = {"Content-Type": "application/json"}
+            response = requests.post(url, data=json.dumps(data), headers=headers, auth=(self.username_var.get(), self.password_var.get()))
+            #contador
+            if response.status_code == 200:
+                self.paquetes_enviados += 1
+                self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+                self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
+                self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente   
+            else:
+                self.paquetes_no_enviados += 1
+                self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+                self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
+                self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente
+                self.webservice_error= tk.Text()
+                data_text= str(data)
+                data_text= data_text.replace("'", '"')
+                self.webservice_error.insert(tk.END, data_text)
+                self.exportar_webservice_error()
+        else:
+            self.paquetes_no_enviados += 1
+            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+            self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: No hay comunicación con el HOST\n", 'warning')
+            self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente
+            self.webservice_error= tk.Text()
+            data_text= str(data)
+            data_text= data_text.replace("'", '"')
+            self.webservice_error.insert(tk.END, data_text)
+            self.exportar_webservice_error() 
+            messagebox.showerror("Error", "No hay comunicación con el host. Verifique su conexión a internet.")
+        
+
+        self.response_entry.see(tk.END)  # Desplaza la vista al final del texto
+        self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
+        #actualizar contadores
+        self.update_contadores()
+        self.sku_var.set("")     # Borra el contenido del campo SKU
+        self.length_var.set("")  # Borra el contenido del campo Largo
+        self.width_var.set("")   # Borra el contenido del campo Ancho
+        self.height_var.set("")  # Borra el contenido del campo Alto
+        self.weight_var.set("")  # Borra el contenido del campo Peso
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.resizable(False,False)
+    app = SerialInterface(root)
+    root.mainloop()
