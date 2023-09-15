@@ -9,7 +9,6 @@ import datetime
 import configparser
 import os
 import time
-import sys
 import uuid
 import sqlite3
 import openpyxl
