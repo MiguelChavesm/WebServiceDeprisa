@@ -1,7 +1,7 @@
 import serial
 import serial.tools.list_ports
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, simpledialog
 import threading
 import requests
 import json
@@ -9,6 +9,7 @@ import datetime
 import configparser
 import os
 import time
+import sys
 import uuid
 import sqlite3
 import openpyxl
@@ -29,6 +30,7 @@ class SerialInterface:
         self.texto_licencia="Desarrollado por Grupo Montra\nUso exclusivo para Deprisa\n\nLicencia: Deprisa Cartagena"
         self.perfil_acceso= ""
         self.valores_combox=[]
+        self.imagenes()
         self.mostrar_ventana_inicio_sesion()
         
         self.notebook = ttk.Notebook(root)
@@ -85,6 +87,17 @@ class SerialInterface:
         formatted_mac = formatted_mac.replace(":", "-")
         return formatted_mac
 
+
+    def imagenes(self):
+        self.logo_montra = tk.PhotoImage(file="Icons/Logo_Montra3.png")
+        self.logo_montra = self.logo_montra.subsample(1, 1)
+                
+        self.logo_cubiscan = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
+        self.logo_cubiscan = self.logo_cubiscan.subsample(1, 1)
+        
+        self.logo_deprisa = tk.PhotoImage(file="Icons/Deprisa_logo.png")
+        self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
+        
 #CREACIÓN DE VENTANA DE INICIO DE SESIÓN
     def mostrar_ventana_inicio_sesion(self):
         self.root.withdraw()  # Oculta la ventana principal
@@ -94,19 +107,14 @@ class SerialInterface:
         self.ventana_inicio_sesion.configure(bg="#FFFFFF")
         self.ventana_inicio_sesion.resizable(False,False)
         Fuente_inicio_sesion = ("Helvetica", 13)
-        # Cargar imagen del disco.
-        self.logo_montra = tk.PhotoImage(file="Icons/Logo_Montra.png")
-        self.logo_montra = self.logo_montra.subsample(1, 1)
-        # Insertarla en una etiqueta.
-        self.label_logo_montra = ttk.Label(self.ventana_inicio_sesion, image=self.logo_montra, background="#FFFFFF")
-        self.label_logo_montra.pack(padx=(60,60), pady=(20,0))
 
-        self.logo_cubiscan = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
-        self.logo_cubiscan = self.logo_cubiscan.subsample(1, 1)
-        # Insertarla en una etiqueta.
-        self.label_logo_cubiscan = ttk.Label(self.ventana_inicio_sesion, image=self.logo_cubiscan, background="#FFFFFF")
-        self.label_logo_cubiscan.pack()
+        self.logo_montra1 = tk.PhotoImage(file="Icons/Logo_Montra.png")
+        self.logo_montra1 = self.logo_montra1.subsample(1, 1)
+        label_logo_montra = ttk.Label(self.ventana_inicio_sesion, image=self.logo_montra1, background="#FFFFFF")
+        label_logo_montra.pack(padx=(60,60), pady=(20,0))
 
+        label_logo_cubiscan = ttk.Label(self.ventana_inicio_sesion, image=self.logo_cubiscan, background="#FFFFFF")
+        label_logo_cubiscan.pack()
         
         usuario_label = tk.Label(self.ventana_inicio_sesion, text="Usuario:", background="#FFFFFF", font=Fuente_inicio_sesion)
         usuario_label.pack(padx=(50,0),pady=(20, 0), anchor="w")  # Agregar espacio arriba
@@ -125,11 +133,10 @@ class SerialInterface:
         boton_login.pack(pady=(20, 0))
         self.contrasena_entry.bind('<Return>', lambda event=None: self.verificar_credenciales())
         
-        self.logo_deprisa0 = tk.PhotoImage(file="Icons/Deprisa_logo.png")
-        self.logo_deprisa0 = self.logo_deprisa0.subsample(1, 1)
         # Insertarla en una etiqueta.
-        self.label_logo_deprisa = ttk.Label(self.ventana_inicio_sesion, image=self.logo_deprisa0, background="#FFFFFF")
-        self.label_logo_deprisa.pack(pady=(50, 10))
+        
+        label_logo_deprisa = ttk.Label(self.ventana_inicio_sesion, image=self.logo_deprisa, background="#FFFFFF")
+        label_logo_deprisa.pack(pady=(50, 10))
         
         
         self.ventana_inicio_sesion.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
@@ -186,10 +193,10 @@ class SerialInterface:
         self.background = ttk.Label(self.usuarios_tab, background=self.colorbackground)
         self.background.grid(row=0, column=0, rowspan=9,padx=(0,20), sticky="snew")
         
-        self.label_montra4 = ttk.Label(self.usuarios_tab, image=self.logo_montra2, background=self.colorbackground)
+        self.label_montra4 = ttk.Label(self.usuarios_tab, image=self.logo_montra, background=self.colorbackground)
         self.label_montra4.grid(row=1, column=0, rowspan=3, padx=(15,25), pady=(10,0), sticky="s")
 
-        self.label_cubiscan4 = ttk.Label(self.usuarios_tab, image=self.logo_cubiscan2,background=self.colorbackground)
+        self.label_cubiscan4 = ttk.Label(self.usuarios_tab, image=self.logo_cubiscan,background=self.colorbackground)
         self.label_cubiscan4.grid(row=4, column=0, rowspan=3, padx=(15,25), sticky="n")
         
         self.label_deprisa2 = ttk.Label(self.usuarios_tab, image=self.logo_deprisa, background=self.colorbackground)
@@ -297,21 +304,15 @@ class SerialInterface:
         self.colorbackground= "lightgrey"
         self.background = ttk.Label(self.medicion_tab, background=self.colorbackground)
         self.background.grid(row=0, column=0, rowspan=9,padx=(0,20), sticky="snew")
+
+        label_montra = ttk.Label(self.medicion_tab, image=self.logo_montra, background=self.colorbackground)
+        label_montra.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
         
-        self.logo_montra2 = tk.PhotoImage(file="Icons/Logo_Montra3.png")
-        self.logo_montra2 = self.logo_montra2.subsample(1, 1)
-        self.label_montra2 = ttk.Label(self.medicion_tab, image=self.logo_montra2, background=self.colorbackground)
-        self.label_montra2.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
+        label_deprisa = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
+        label_deprisa.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
         
-        self.logo_deprisa = tk.PhotoImage(file="Icons/Deprisa_logo.png")
-        self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
-        self.label_deprisa1 = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
-        self.label_deprisa1.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
-        
-        self.logo_cubiscan2 = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
-        self.logo_cubiscan2 = self.logo_cubiscan2.subsample(1, 1)
-        self.label_cubiscan2 = ttk.Label(self.medicion_tab, image=self.logo_cubiscan2,background=self.colorbackground)
-        self.label_cubiscan2.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
+        label_cubiscan = ttk.Label(self.medicion_tab, image=self.logo_cubiscan,background=self.colorbackground)
+        label_cubiscan.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
 
         # Botón de cerrar de sesión
         logout_image = customtkinter.CTkImage(Image.open("Icons/logout.png").resize((100,100), Image.Resampling.LANCZOS))
@@ -448,14 +449,14 @@ class SerialInterface:
         self.background = ttk.Label(self.configuracion_tab, background=self.colorbackground)
         self.background.grid(row=0, column=0, rowspan=20,padx=(0,20), sticky="snew")
         
-        self.label_montra3 = ttk.Label(self.configuracion_tab, image=self.logo_montra2, background=self.colorbackground)
-        self.label_montra3.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
+        label_montra = ttk.Label(self.configuracion_tab, image=self.logo_montra, background=self.colorbackground)
+        label_montra.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
         
-        self.label_deprisa1 = ttk.Label(self.configuracion_tab, image=self.logo_deprisa, background=self.colorbackground)
-        self.label_deprisa1.grid(row=6, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
+        label_deprisa = ttk.Label(self.configuracion_tab, image=self.logo_deprisa, background=self.colorbackground)
+        label_deprisa.grid(row=6, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
 
-        self.label_cubiscan3 = ttk.Label(self.configuracion_tab, image=self.logo_cubiscan2,background=self.colorbackground)
-        self.label_cubiscan3.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
+        label_cubiscan = ttk.Label(self.configuracion_tab, image=self.logo_cubiscan,background=self.colorbackground)
+        label_cubiscan.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
         
         separacion_borde=(0,0)
     
@@ -807,12 +808,12 @@ class SerialInterface:
             if response.status_code == 200:
                 self.paquetes_enviados += 1
                 self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-                self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
+                self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
                 self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente   
             else:
                 self.paquetes_no_enviados += 1
                 self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-                self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
+                self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
                 self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente
                 self.webservice_error= tk.Text()
                 data_text= str(data)
@@ -822,7 +823,7 @@ class SerialInterface:
         else:
             self.paquetes_no_enviados += 1
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: No hay comunicación con el HOST\n", 'warning')
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: No hay comunicación con el HOST\n", 'warning')
             self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente
             self.webservice_error= tk.Text()
             data_text= str(data)
