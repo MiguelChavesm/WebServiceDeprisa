@@ -17,6 +17,8 @@ from tkinter import filedialog
 import numpy as np
 import customtkinter
 from PIL import Image, ImageTk
+from screeninfo import get_monitors
+
 
 
 
@@ -26,29 +28,36 @@ class SerialInterface:
         self.root = root
         self.root.title("MONTRA")
         root.iconbitmap('Icons/montra.ico')
-        
+        # Define el ancho y alto de la ventana
+
         self.direcciones_mac_permitidas = ["30:05:05:b8:bb:31", "bc:f1:71:f3:5f:60", "30-05-05-B8-BB-35"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
         self.texto_licencia="Desarrollado por Grupo Montra\nUso exclusivo para Deprisa\n\nLicencia: Deprisa Cartagena"
+        self.perfil_acceso= ""
+        self.valores_combox=[]
         self.mostrar_ventana_inicio_sesion()
         
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
         self.medicion_tab = ttk.Frame(self.notebook)
         self.configuracion_tab = ttk.Frame(self.notebook)
+        self.usuarios_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.medicion_tab, text="Medición", state="disabled")  # Inicialmente deshabilitada
+        self.notebook.add(self.usuarios_tab, text="Usuarios", state="disabled")  # Inicialmente deshabilitada)
         self.notebook.add(self.configuracion_tab, text="Configuración", state="disabled")  # Inicialmente deshabilitada
         self.create_medicion_tab()
         self.create_configuracion_tab()
-        self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
+        self.abrir_ventana_crear_usuario()
         self.cargar_configuracion()
+        self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
 
+        
         self.paquetes_enviados = 0
         self.paquetes_no_enviados = 0
-        
         self.tiempo_espera = 2  # Tiempo en segundos para esperar la recepción de datos
         self.datos_recibidos = False  # Agrega esta línea para inicializar la variable
 
         #print(self.get_mac_address())
+
 
 #VERIFICACIÓN DE MAC
     #Obtener mac_address
@@ -99,10 +108,10 @@ class SerialInterface:
         boton_login.pack(pady=(20, 0))
         self.contrasena_entry.bind('<Return>', lambda event=None: self.verificar_credenciales())
         
-        self.logo_deprisa = tk.PhotoImage(file="Icons/Deprisa_logo.png")
-        self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
+        self.logo_deprisa0 = tk.PhotoImage(file="Icons/Deprisa_logo.png")
+        self.logo_deprisa0 = self.logo_deprisa0.subsample(1, 1)
         # Insertarla en una etiqueta.
-        self.label_logo_deprisa = ttk.Label(self.ventana_inicio_sesion, image=self.logo_deprisa, background="#FFFFFF")
+        self.label_logo_deprisa = ttk.Label(self.ventana_inicio_sesion, image=self.logo_deprisa0, background="#FFFFFF")
         self.label_logo_deprisa.pack(pady=(50, 10))
         
         
@@ -123,28 +132,143 @@ class SerialInterface:
             acceso = resultado[0]
             if acceso == 'ADMINISTRADOR':
                 self.notebook.tab(0, state="normal")  # Habilitar la pestaña de Medición
-                self.notebook.tab(1, state="normal")  # Habilitar la pestaña de Configuración
+                self.notebook.tab(1, state="normal")  # Habilitar la pestaña de Usuarios
                 self.notebook.select(0)  # Cambiar a la pestaña de Medición
+                self.acceso_combobox['values'] = [""]
+                self.acceso_combobox['values']=["ADMINISTRADOR","OPERARIO"]
                 self.ventana_inicio_sesion.destroy()  # Cerrar la ventana de inicio de sesión
             elif acceso == 'OPERARIO':
                 self.notebook.tab(0, state="normal")  # Habilitar la pestaña de Medición
                 self.notebook.select(0)  # Cambiar a la pestaña de Medición
+                self.perfil_acceso=2
                 self.ventana_inicio_sesion.destroy()  # Cerrar la ventana de inicio de sesión
-            self.root.deiconify()  # Mostrar la ventana principal nuevamente
+            elif acceso == 'SUPERUSUARIO':
+                self.notebook.tab(0, state="normal")  # Habilitar la pestaña de Medición
+                self.notebook.tab(1, state="normal")  # Habilitar la pestaña de Usuarios
+                self.notebook.tab(2, state="normal")  # Habilitar la pestaña de Configuración
+                self.notebook.select(0)  # Cambiar a la pestaña de Medición
+                self.acceso_combobox['values'] = [""]
+                self.acceso_combobox['values']=["ADMINISTRADOR","OPERARIO", "SUPERUSUARIO"]
+                self.ventana_inicio_sesion.destroy()  # Cerrar la ventana de inicio de sesión
+            self.root.deiconify() # Mostrar la ventana principal nuevamente
             self.sku_entry.focus_set()
         else:
             messagebox.showerror("Error", "Credenciales incorrectas. Intente nuevamente.")
             # Borra el contenido de los campos de entrada
-            #self.mostrar_ventana_inicio_sesion()
             self.usuario_entry.delete(0, tk.END)
             self.contrasena_entry.delete(0, tk.END)
             
         conn.close()
         self.usuario_registrado=usuario
+        self.perfil_acceso=acceso
+
+#CREACIÓN VENTANA DE USUARIOS
+    def abrir_ventana_crear_usuario(self):
+        # Ventana emergente para cambiar la contraseña
+        self.colorbackground= "lightgrey"
+        self.background = ttk.Label(self.usuarios_tab, background=self.colorbackground)
+        self.background.grid(row=0, column=0, rowspan=9,padx=(0,20), sticky="snew")
+        
+        self.label_montra4 = ttk.Label(self.usuarios_tab, image=self.logo_montra2, background=self.colorbackground)
+        self.label_montra4.grid(row=1, column=0, rowspan=3, padx=(15,25), pady=(10,0), sticky="s")
+
+        self.label_cubiscan4 = ttk.Label(self.usuarios_tab, image=self.logo_cubiscan2,background=self.colorbackground)
+        self.label_cubiscan4.grid(row=4, column=0, rowspan=3, padx=(15,25), sticky="n")
+        
+        self.label_deprisa2 = ttk.Label(self.usuarios_tab, image=self.logo_deprisa, background=self.colorbackground)
+        self.label_deprisa2.grid(row=5, column=0, rowspan=1, padx=(15,25), pady=10, sticky="ew")
+        
+        logout_image = customtkinter.CTkImage(Image.open("Icons/logout.png").resize((100,100), Image.Resampling.LANCZOS))
+        boton_logout = customtkinter.CTkButton(self.usuarios_tab, text="Cerrar Sesión", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=150, height=20, compound="left", image= logout_image, command=self.cerrar_sesion)
+        boton_logout.grid(row=6, column=0, columnspan=1, padx=(10,30), pady=5, sticky="new")
+        
+        ttk.Label(self.usuarios_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=7, rowspan=2, column=0,pady=(20,30), padx=(5,0), sticky="w")
+
+        ttk.Label(self.usuarios_tab, text="Usuario:").grid(row=1, column=2, padx=(50,0), pady=5, sticky="w")
+        self.nombre_usuario_entry = ttk.Entry(self.usuarios_tab)
+        self.nombre_usuario_entry.grid(row=1, column=3, padx=(0,0), pady=5)
+
+        ttk.Label(self.usuarios_tab, text="Contraseña:").grid(row=2, column=2, padx=(50,0), pady=5, sticky="w")
+        self.contraseña_usuario_entry = ttk.Entry(self.usuarios_tab, show="*")
+        self.contraseña_usuario_entry.grid(row=2, column=3, padx=(0,0), pady=5)
+
+        ttk.Label(self.usuarios_tab, text="Perfil:").grid(row=3, column=2, padx=(50,0), pady=5, sticky="w")
+        
+        self.acceso_combobox = ttk.Combobox(self.usuarios_tab, state="readonly")
+        self.acceso_combobox.grid(row=3, column=3, padx=(0,0), pady=5)
+
+        ttk.Button(self.usuarios_tab, text="Guardar",command=lambda: self.guardar_nuevo_usuario()).grid(row=4, column=3, columnspan=2, padx=10, pady=5)
+
+        
+        # Crear la tabla para mostrar los datos
+        columns = ('Usuario', 'Contraseña', 'Perfil')
+        self.tree2 = ttk.Treeview(self.usuarios_tab, columns=columns, show='headings')
+
+        for col in columns:
+            self.tree2.heading(col, text=col)
+            self.tree2.column('Usuario', width=200)
+            self.tree2.column('Contraseña', width=200)
+            self.tree2.column('Perfil', width=200)
+
+        self.tree2.grid(row=5, column=1, rowspan=1, columnspan=10, pady=(10,10))
+        
+        self.actualizar_tabla()
+        
+    def actualizar_tabla (self):
+        self.tree2.tag_configure('ADMINISTRADOR', background='#FF6666') #ROJO
+        self.tree2.tag_configure('OPERARIO', background='#B7FF66') #VERDE
+        self.tree2.tag_configure('SUPERUSUARIO', background='#66DCFF') #AZUL
+        self.tree2.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
+        conn = sqlite3.connect('Montradb.db')
+        cursor = conn.cursor()
+        # Limpiar la tabla actual
+        for item in self.tree2.get_children():
+            self.tree2.delete(item)
+        # Consultar la base de datos y agregar los datos al Treeview
+        cursor.execute("SELECT * FROM LogIn")
+        for row in cursor.fetchall():
+            access_type = row[2] # Obtener el tipo de acceso de la fila
+            contraseña_oculta = self.ocultar_contraseña(row[1])
+            row_with_asterisks = (row[0], contraseña_oculta, row[2])
+            self.tree2.insert("", "end", values=row_with_asterisks, tags=(access_type.upper(),))
+        conn.close()
+        
+    def ocultar_contraseña(self, contraseña):
+        return '*' * len(contraseña)
+
+    #Acción ejecutada por el boton para guardar la nueva contraseña en el archivo.ini
+    def guardar_nuevo_usuario(self):
+        nombre_usuario_entry = self.nombre_usuario_entry.get()
+        contraseña_usuario_entry = self.contraseña_usuario_entry.get()
+        acceso_combobox = self.acceso_combobox.get()
+        
+        if (nombre_usuario_entry!="" and contraseña_usuario_entry!="" and acceso_combobox!=""):
+            conn = sqlite3.connect('Montradb.db')
+            cursor = conn.cursor()
+            cursor.execute('INSERT INTO Login (Usuario, Contraseña, Acceso) VALUES (?, ?, ?)', (nombre_usuario_entry, contraseña_usuario_entry, acceso_combobox ))
+            conn.commit()
+            messagebox.showinfo(message="El usuario se ha creado con exito")
+            self.actualizar_tabla()
+            conn.close()
+
+            self.nombre_usuario_entry.delete(0, 'end')
+            self.contraseña_usuario_entry.delete(0, 'end')
+            self.acceso_combobox.set('')  # Borra la selección del Combobox
+        else:
+            messagebox.showerror(message="Debe completar todos los campos para crear usuario")
+
+
+#CREACION DE METODO DE CIERRE DE APLICACIÓN.
+    def cerrar_aplicacion(self):
+        if hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
+            self.cerrar_puerto()  # Cerrar el puerto si está abierto
+        self.guardar_configuracion()  # Guardar la configuración antes de salir
+        self.exportar_excel()
+        self.exportar_log()
+        self.root.destroy()  # Cerrar la aplicación
 
 #CREACIÓN DE VENTANA DE MEDICIÓN
     def create_medicion_tab(self):
-        
         self.sku_var = tk.StringVar()
         self.length_var = tk.StringVar()
         self.width_var = tk.StringVar()
@@ -162,9 +286,10 @@ class SerialInterface:
         self.label_montra2 = ttk.Label(self.medicion_tab, image=self.logo_montra2, background=self.colorbackground)
         self.label_montra2.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
         
-        
-        self.label_deprisa = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
-        self.label_deprisa.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
+        self.logo_deprisa = tk.PhotoImage(file="Icons/Deprisa_logo.png")
+        self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
+        self.label_deprisa1 = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
+        self.label_deprisa1.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
         
         self.logo_cubiscan2 = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
         self.logo_cubiscan2 = self.logo_cubiscan2.subsample(1, 1)
@@ -176,7 +301,7 @@ class SerialInterface:
         boton_logout = customtkinter.CTkButton(self.medicion_tab, text="Cerrar Sesión", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= logout_image, command=self.cerrar_sesion)
         boton_logout.grid(row=5, column=0, columnspan=1, padx=(10,30), pady=5, sticky="new")
 
-        ttk.Label(self.medicion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=6, rowspan=1, column=0, padx=(5,0), sticky="w")
+        ttk.Label(self.medicion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=6, rowspan=1, column=0, padx=(5,0), pady=(0,5), sticky="w")
         
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=1, padx=10, pady=5, sticky="w")
         self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
@@ -259,6 +384,7 @@ class SerialInterface:
     def cerrar_sesion(self):
         self.notebook.tab(0, state="disabled")  # Deshabilitar la pestaña de Medición
         self.notebook.tab(1, state="disabled")  # Deshabilitar la pestaña de Configuración
+        self.notebook.tab(2, state="disabled")  # Deshabilitar la pestaña de Configuración
         self.mostrar_ventana_inicio_sesion()  # Mostrar la ventana de inicio de sesión nuevamente
 
     #CREACIÓN DE COMANDOS PARA FOCUS Y ACCIONES CON ENTER
@@ -273,7 +399,6 @@ class SerialInterface:
         elif self.is_sendbutton_focused:
             self.send_data()
             self.sku_entry.focus_set()
-
     
     #Confirmar cursor en boton "medir" con variable en TRUE
     def on_button_focus_in(self, event): 
@@ -299,7 +424,6 @@ class SerialInterface:
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
         self.machine_name_var = tk.StringVar()
-        
         self.ruta_exportacion = tk.StringVar()
         
         # Insertarla en una etiqueta.
@@ -324,11 +448,11 @@ class SerialInterface:
 
 
         #Botón para crear usuarios
-        crear_usuario_image = customtkinter.CTkImage(Image.open("Icons/login.png").resize((100,100), Image.Resampling.LANCZOS))
-        boton_crear_usuario = customtkinter.CTkButton(self.configuracion_tab, text="Crear usuario", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= crear_usuario_image, command=self.abrir_ventana_crear_usuario)
-        boton_crear_usuario.grid(row=10, column=0, padx=(10,30), pady=(5,5))
+        logout_image = customtkinter.CTkImage(Image.open("Icons/logout.png").resize((100,100), Image.Resampling.LANCZOS))
+        boton_logout = customtkinter.CTkButton(self.configuracion_tab, text="Cerrar Sesión", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= logout_image, command=self.cerrar_sesion)
+        boton_logout.grid(row=10, column=0, padx=(10,30), pady=(5,5))
         
-        ttk.Label(self.configuracion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=12, rowspan=1, column=0, pady=(5,40), padx=(5,20), sticky="w")
+        ttk.Label(self.configuracion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=12, rowspan=1, column=0, pady=(5,34), padx=(5,20), sticky="w")
         ttk.Label(self.configuracion_tab, text="DATOS WEB SERVICE:",font=("Helvetica", 13)).grid(row=0, column=1, columnspan=2, padx=separacion_borde, pady=(20,5), sticky="w")
         
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, padx=separacion_borde, column=1, pady=5, sticky="w")
@@ -460,8 +584,6 @@ class SerialInterface:
         ruta_completa = self.ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
 
     # Verificar si la carpeta de destino existe
-                
-                
         if self.ruta_exportacion.get() =="" or not self.ruta_destino.exists() or not self.ruta_destino.is_dir():
             self.ruta_destino="Export"
             if not os.path.exists(self.ruta_destino):
@@ -473,7 +595,7 @@ class SerialInterface:
         worksheet.title = "Medidas"
         
         # Encabezados
-        encabezados = ["SKU", "Largo", "Ancho", "Alto", "Peso", "Fecha"]
+        encabezados = ["SKU", "Largo", "Ancho", "Alto", "Peso", "Fecha", "Usuario"]
         for col_num, encabezado in enumerate(encabezados, 1):
             worksheet.cell(row=1, column=col_num, value=encabezado)
 
@@ -481,7 +603,8 @@ class SerialInterface:
         for row_num, item in enumerate(self.tree.get_children(), 2):
             datos_fila = [self.tree.item(item, 'values')[0], self.tree.item(item, 'values')[1],
                         self.tree.item(item, 'values')[2], self.tree.item(item, 'values')[3],
-                        self.tree.item(item, 'values')[4], self.tree.item(item, 'values')[5]]
+                        self.tree.item(item, 'values')[4], self.tree.item(item, 'values')[5], 
+                        self.tree.item(item, 'values')[6]]
             for col_num, valor in enumerate(datos_fila, 1):
                 worksheet.cell(row=row_num, column=col_num, value=valor)
 
@@ -523,53 +646,6 @@ class SerialInterface:
                 file.write(log_to_export)
                 
         #self.webservice_error.delete("1.0", "end")
-
-#CONFIGURACIÓN DE VENTANA PARA CREAR USUARIOS
-    #Creación de ventana para crear usuarios.
-    def abrir_ventana_crear_usuario(self):
-        # Ventana emergente para cambiar la contraseña
-        self.crear_usuario_window = tk.Toplevel(self.root)
-        self.crear_usuario_window.title("Crear usuario")
-        self.crear_usuario_window.iconbitmap('Icons/montra.ico')
-        self.crear_usuario_window.grab_set()
-
-        ttk.Label(self.crear_usuario_window, text="Usuario:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        nombre_usuario_entry = ttk.Entry(self.crear_usuario_window)
-        nombre_usuario_entry.grid(row=0, column=1, padx=10, pady=5)
-
-        ttk.Label(self.crear_usuario_window, text="Contraseña:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        contraseña_usuario_entry = ttk.Entry(self.crear_usuario_window, show="*")
-        contraseña_usuario_entry.grid(row=1, column=1, padx=10, pady=5)
-
-        ttk.Label(self.crear_usuario_window, text="Perfil:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
-        acceso_combobox = ttk.Combobox(self.crear_usuario_window, state="readonly", values=["ADMINISTRADOR", "OPERARIO"])
-        acceso_combobox.grid(row=2, column=1, padx=10, pady=5)
-
-        ttk.Button(self.crear_usuario_window, text="Guardar",command=lambda: self.guardar_nuevo_usuario(nombre_usuario_entry.get(), contraseña_usuario_entry.get(),acceso_combobox.get() )).grid(row=4, columnspan=2, padx=10, pady=5)
-    
-    #Acción ejecutada por el boton para guardar la nueva contraseña en el archivo.ini
-    def guardar_nuevo_usuario(self, nombre_usuario_entry, contraseña_usuario_entry, acceso_combobox):
-        
-        if (nombre_usuario_entry!="" and contraseña_usuario_entry!="" and acceso_combobox!=""):
-            conn = sqlite3.connect('Montradb.db')
-            cursor = conn.cursor()
-            cursor.execute('INSERT INTO Login (Usuario, Contraseña, Acceso) VALUES (?, ?, ?)', (nombre_usuario_entry, contraseña_usuario_entry, acceso_combobox ))
-            conn.commit()
-            conn.close()
-            messagebox.showinfo(message="El usuario se ha creado con exito")
-            self.crear_usuario_window.destroy()  # Cerrar la ventana de inicio de sesión
-        else:
-            messagebox.showerror(message="Debe completar todos los campos para crear usuario")
-
-#CREACION DE METODO DE CIERRE DE APLICACIÓN.
-    def cerrar_aplicacion(self):
-        if hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
-            self.cerrar_puerto()  # Cerrar el puerto si está abierto
-        self.guardar_configuracion()  # Guardar la configuración antes de salir
-        self.exportar_excel()
-        self.exportar_log()
-        self.root.destroy()  # Cerrar la aplicación
-
 
 #CONFIGURACIÓN PARA RECEPCIÓN PEDIR Y RECIBIR DATOS DE CUBISCAN
     #Solicitar medición

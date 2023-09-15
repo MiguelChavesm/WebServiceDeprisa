@@ -1,14 +1,25 @@
-import json
- 
-# initializing string
-test_string = '{"Nikhil" : 1, "Akshat" : 2, "Akash" : 3}'
- 
-# printing original string
-print("The original string : " + str(test_string))
- 
-# using json.loads()
-# convert dictionary string to dictionary
-res = json.loads(test_string)
- 
-# print result
-print("The converted dictionary : " + str(res))
+import tkinter as tk
+from tkinter import ttk
+
+def actualizar_combobox():
+    perfil_acceso = perfil_var.get()
+    
+    # Borra todas las opciones actuales del Combobox
+    acceso_combobox['values'] = []
+    
+    if perfil_acceso == 1:
+        acceso_combobox['values'] = ["ADMINISTRADOR", "OPERARIO"]
+    elif perfil_acceso == 2:
+        acceso_combobox['values'] = ["ADMINISTRADOR", "SUPERUSUARIO", "OPERARIO"]
+
+root = tk.Tk()
+
+perfil_var = tk.IntVar()  # Variable que almacena el perfil de acceso
+perfil_var.set(2)  # Puedes cambiar esto según el perfil de acceso actual
+
+acceso_combobox = ttk.Combobox(root, state="readonly")
+acceso_combobox.grid(row=0, column=0)
+
+actualizar_combobox()  # Actualiza el Combobox según el perfil de acceso inicial
+
+root.mainloop()

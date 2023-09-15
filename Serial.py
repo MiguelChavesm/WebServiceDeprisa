@@ -1,20 +1,20 @@
 import serial
 import serial.tools.list_ports
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
+from tkinter import ttk, messagebox
 import threading
 import requests
 import json
 import datetime
 import configparser
+import os
 import uuid
 import sqlite3
 import openpyxl
 from pathlib import Path
 from tkinter import filedialog
-import numpy as np
 import customtkinter
-from PIL import Image, ImageTk
+from PIL import Image
 
 
 
@@ -22,8 +22,8 @@ from PIL import Image, ImageTk
 class SerialInterface:
     def __init__(self, root):
         self.root = root
-        self.root.title("ANTRA")
-        root.iconbitmap('montra.ico')
+        self.root.title("MONTRA")
+        root.iconbitmap('Icons/montra.ico')
         
         self.direcciones_mac_permitidas = ["30:05:05:b8:bb:31", "bc:f1:71:f3:5f:60", "30-05-05-B8-BB-35"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
         self.texto_licencia="Desarrollado por Grupo Montra\nUso exclusivo para Deprisa\n\nLicencia: Deprisa Cartagena"
@@ -46,7 +46,7 @@ class SerialInterface:
         self.tiempo_espera = 2  # Tiempo en segundos para esperar la recepción de datos
         self.datos_recibidos = False  # Agrega esta línea para inicializar la variable
 
-        print(self.get_mac_address())
+        #print(self.get_mac_address())
 
 #VERIFICACIÓN DE MAC
     #Obtener mac_address
@@ -57,23 +57,22 @@ class SerialInterface:
         formatted_mac = formatted_mac.replace(":", "-")
         return formatted_mac
 
-#CREACIÓN DE VENTANA DE INICIO DE SESIÓN
     def mostrar_ventana_inicio_sesion(self):
         self.root.withdraw()  # Oculta la ventana principal
         self.ventana_inicio_sesion = tk.Toplevel(self.root)
-        self.ventana_inicio_sesion.title("BONTRA")
-        self.ventana_inicio_sesion.iconbitmap('montra.ico')
+        self.ventana_inicio_sesion.title("MONTRA")
+        self.ventana_inicio_sesion.iconbitmap('Icons/montra.ico')
         self.ventana_inicio_sesion.configure(bg="#FFFFFF")
         self.ventana_inicio_sesion.resizable(False,False)
         Fuente_inicio_sesion = ("Helvetica", 13)
         # Cargar imagen del disco.
-        self.logo_montra = tk.PhotoImage(file="Logo_Montra.png")
+        self.logo_montra = tk.PhotoImage(file="Icons/Logo_Montra.png")
         self.logo_montra = self.logo_montra.subsample(1, 1)
         # Insertarla en una etiqueta.
         self.label_logo_montra = ttk.Label(self.ventana_inicio_sesion, image=self.logo_montra, background="#FFFFFF")
         self.label_logo_montra.pack(padx=(60,60), pady=(20,0))
 
-        self.logo_cubiscan = tk.PhotoImage(file="Cubiscan_logo.png")
+        self.logo_cubiscan = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
         self.logo_cubiscan = self.logo_cubiscan.subsample(1, 1)
         # Insertarla en una etiqueta.
         self.label_logo_cubiscan = ttk.Label(self.ventana_inicio_sesion, image=self.logo_cubiscan, background="#FFFFFF")
@@ -92,12 +91,12 @@ class SerialInterface:
         self.contrasena_entry.pack(padx=(50,50))
 
         # Botón de inicio de sesión
-        login_image = customtkinter.CTkImage(Image.open("login2.png").resize((100,100), Image.Resampling.LANCZOS))
+        login_image = customtkinter.CTkImage(Image.open("Icons/login2.png").resize((100,100), Image.Resampling.LANCZOS))
         boton_login = customtkinter.CTkButton(self.ventana_inicio_sesion, text="Iniciar Sesión", font=("Helvetica", 16), text_color="#000000", fg_color="#B1B3B6", hover_color="#828890", width=200, height=20, compound="left", image= login_image, command=self.verificar_credenciales)
         boton_login.pack(pady=(20, 0))
         self.contrasena_entry.bind('<Return>', lambda event=None: self.verificar_credenciales())
         
-        self.logo_deprisa = tk.PhotoImage(file="Deprisa_logo.png")
+        self.logo_deprisa = tk.PhotoImage(file="Icons/Deprisa_logo.png")
         self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
         # Insertarla en una etiqueta.
         self.label_logo_deprisa = ttk.Label(self.ventana_inicio_sesion, image=self.logo_deprisa, background="#FFFFFF")
@@ -106,7 +105,6 @@ class SerialInterface:
         
         self.ventana_inicio_sesion.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
         
-
     def verificar_credenciales(self):
         usuario = self.usuario_entry.get()
         contrasena = self.contrasena_entry.get()
@@ -155,7 +153,7 @@ class SerialInterface:
         self.background = ttk.Label(self.medicion_tab, background=self.colorbackground)
         self.background.grid(row=0, column=0, rowspan=9,padx=(0,20), sticky="snew")
         
-        self.logo_montra2 = tk.PhotoImage(file="Logo_Montra3.png")
+        self.logo_montra2 = tk.PhotoImage(file="Icons/Logo_Montra3.png")
         self.logo_montra2 = self.logo_montra2.subsample(1, 1)
         self.label_montra2 = ttk.Label(self.medicion_tab, image=self.logo_montra2, background=self.colorbackground)
         self.label_montra2.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
@@ -164,37 +162,25 @@ class SerialInterface:
         self.label_deprisa = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
         self.label_deprisa.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
         
-        self.logo_cubiscan2 = tk.PhotoImage(file="Cubiscan_logo.png")
+        self.logo_cubiscan2 = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
         self.logo_cubiscan2 = self.logo_cubiscan2.subsample(1, 1)
         self.label_cubiscan2 = ttk.Label(self.medicion_tab, image=self.logo_cubiscan2,background=self.colorbackground)
         self.label_cubiscan2.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
 
         # Botón de cerrar de sesión
-        logout_image = customtkinter.CTkImage(Image.open("logout.png").resize((100,100), Image.Resampling.LANCZOS))
+        logout_image = customtkinter.CTkImage(Image.open("Icons/logout.png").resize((100,100), Image.Resampling.LANCZOS))
         boton_logout = customtkinter.CTkButton(self.medicion_tab, text="Cerrar Sesión", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= logout_image, command=self.cerrar_sesion)
         boton_logout.grid(row=5, column=0, columnspan=1, padx=(10,30), pady=5, sticky="new")
 
         ttk.Label(self.medicion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=6, rowspan=1, column=0, padx=(5,0), sticky="w")
         
-        
-        #self.cerrar_sesion_button = ttk.Button(self.medicion_tab, text="Cerrar Sesión", command=self.cerrar_sesion, fg=self.colorbackground)
-        #self.cerrar_sesion_button.grid(row=4, column=0, columnspan=1, padx=(10,30), pady=5, sticky="sew")
-        
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=1, padx=10, pady=5, sticky="w")
         self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
         self.sku_entry.grid(row=0, column=2, padx=10, pady=0, ipadx=15)
 
-        
-        #medir_image = customtkinter.CTkImage(Image.open("medir3.png").resize((100,100), Image.Resampling.LANCZOS))
-        #self.medir_button = customtkinter.CTkButton(self.medicion_tab, text="Medir", border_width=1, border_color="#D1CFCF", font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="lightblue", width=100, height=40, compound="right", image= medir_image, command=self.enviar_trama)
-        #self.medir_button.grid(row=1, rowspan=2, column=1, columnspan=2, padx=10, pady=0)
         self.medir_button = ttk.Button(self.medicion_tab, text="Medir", command=self.enviar_trama)
         self.medir_button.grid(row=1, rowspan=2, column=1, columnspan=2, padx=10, pady=0, sticky="n")
         
-        
-        #enviar_image = customtkinter.CTkImage(Image.open("medir2.png").resize((100,100), Image.Resampling.LANCZOS))
-        #self.send_button = customtkinter.CTkButton(self.medicion_tab, text="Enviar", border_width=1, border_color="#D1CFCF", font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="lightblue", width=100, height=40, compound="right", image= enviar_image, command=self.send_data)
-        #self.send_button.grid(row=3, rowspan=1, column=1, columnspan=2, padx=10, pady=0)
         self.send_button = ttk.Button(self.medicion_tab, text="Enviar",  compound="right", command=self.send_data)
         self.send_button.grid(row=2, rowspan=1, column=1, columnspan=2 ,padx=10, pady=0, sticky="n")
 
@@ -218,6 +204,7 @@ class SerialInterface:
         self.response_entry = tk.Text(self.medicion_tab, state="disabled", background="#FCFFD0", font=("Arial", 10))
         self.response_entry.config(width=20, height=5)
         self.response_entry.grid(row=6, column=1, columnspan=20, pady=5, sticky="nsew")
+
         
         # Crear la tabla para mostrar los datos
         columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Usuario')
@@ -311,7 +298,6 @@ class SerialInterface:
         
         self.ruta_exportacion = tk.StringVar()
         
-        
         # Insertarla en una etiqueta.
         self.colorbackground= "lightgrey"
         self.background = ttk.Label(self.configuracion_tab, background=self.colorbackground)
@@ -328,21 +314,17 @@ class SerialInterface:
         
         separacion_borde=(0,0)
     
-        save_image = customtkinter.CTkImage(Image.open("save.png").resize((100,100), Image.Resampling.LANCZOS))
+        save_image = customtkinter.CTkImage(Image.open("Icons/save.png").resize((100,100), Image.Resampling.LANCZOS))
         boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
         boton_save.grid(row=9, column=0, padx=(10,30), pady=10)
-        #self.guardar_config_button = ttk.Button(self.configuracion_tab, text="Guardar Configuración", command=self.guardar_configuracion)
-        #self.guardar_config_button.grid(row=9, columnspan=2, padx=10, pady=5)
+
 
         #Botón para crear usuarios
-        crear_usuario_image = customtkinter.CTkImage(Image.open("login.png").resize((100,100), Image.Resampling.LANCZOS))
+        crear_usuario_image = customtkinter.CTkImage(Image.open("Icons/login.png").resize((100,100), Image.Resampling.LANCZOS))
         boton_crear_usuario = customtkinter.CTkButton(self.configuracion_tab, text="Crear usuario", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= crear_usuario_image, command=self.abrir_ventana_crear_usuario)
         boton_crear_usuario.grid(row=10, column=0, padx=(10,30), pady=(5,5))
         
         ttk.Label(self.configuracion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=12, rowspan=1, column=0, pady=(5,40), padx=(5,20), sticky="w")
-        #crear_usuario_button = ttk.Button(self.configuracion_tab, text="Crear usuario", command=self.abrir_ventana_crear_usuario)
-        #crear_usuario_button.grid(row=11, column=0, padx=10, pady=(5,80))
-
         ttk.Label(self.configuracion_tab, text="DATOS WEB SERVICE:",font=("Helvetica", 13)).grid(row=0, column=1, columnspan=2, padx=separacion_borde, pady=(20,5), sticky="w")
         
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, padx=separacion_borde, column=1, pady=5, sticky="w")
@@ -366,9 +348,11 @@ class SerialInterface:
         ruta_exportacion_entry = ttk.Entry(self.configuracion_tab, textvariable=self.ruta_exportacion, width=40)
         ruta_exportacion_entry.grid(row=6, column=2, columnspan=2, pady=5, sticky="w")
         
-        self.seleccionar_carpeta_button = ttk.Button(self.configuracion_tab, text="Seleccionar ruta", command=self.seleccionar_carpeta)
-        self.seleccionar_carpeta_button.grid(row=6, column=3, columnspan=4, padx=(125,0), pady=5, sticky="w")
-
+        
+        seleccionar_ruta_image = customtkinter.CTkImage(Image.open("Icons/folder.png").resize((100,100), Image.Resampling.LANCZOS))
+        seleccionar_carpeta_button = customtkinter.CTkButton(self.configuracion_tab, text="", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=20, height=20, compound="left", image= seleccionar_ruta_image, command=self.seleccionar_carpeta)
+        seleccionar_carpeta_button.grid(row=6, column=3, columnspan=4, padx=(125,0), pady=5, sticky="w")
+        
         ttk.Label(self.configuracion_tab, text="CONFIGURACIÓN DE COMUNICACIÓN:",font=("Helvetica", 13)).grid(row=8, column=1, columnspan=3, padx=separacion_borde, pady=(20,5), sticky="w")
         ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:").grid(row=9,column=1, padx=separacion_borde, pady=5, sticky="w")
         self.puertos_combobox = ttk.Combobox(self.configuracion_tab)
@@ -411,7 +395,7 @@ class SerialInterface:
                 self.data_thread = threading.Thread(target=self.leer_datos)
                 self.data_thread.start()
             except Exception as e:
-                mensaje = f"Error al abrir el puerto: {e}"
+                mensaje = f"{puerto_seleccionado}.\n Error: El puerto especificado no existe"
                 messagebox.showerror("Error", mensaje)
     
     #Cerrar el puerto
@@ -467,29 +451,23 @@ class SerialInterface:
 #CONFIGURACIÓN PARA EXPORTACIÓN DE DATOS
     def exportar_excel(self):
         self.ruta_destino = Path(self.ruta_exportacion.get())
-        fecha_actual = datetime.datetime.now().strftime("%Y%d%m_%H-%M-%S")
-        nombre_archivo = f"CubiScan_{fecha_actual}.xlsx"
+        self.fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
+        nombre_archivo = f"CubiScan_{self.fecha_actual}.xlsx"
         ruta_completa = self.ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
 
     # Verificar si la carpeta de destino existe
-        if not self.ruta_destino.exists() or not self.ruta_destino.is_dir():
-            if folder_selected := filedialog.askdirectory(
-                title="Selecciona la carpeta de destino"
-            ):
-                self.ruta_exportacion.set(folder_selected)
-                self.nueva_ruta_destino = Path(self.ruta_exportacion.get())  # Actualizar la ruta de destino
-                ruta_completa = self.nueva_ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
-            else:
-                folder_selected = filedialog.askdirectory(title="Seleccione una carpeta de destino")
-                self.ruta_destino=Path(self.ruta_exportacion.get())
-                ruta_completa = self.ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
-                return
+        if self.ruta_exportacion.get() =="" or not self.ruta_destino.exists() or not self.ruta_destino.is_dir():
+            self.ruta_destino="Export"
+            if not os.path.exists(self.ruta_destino):
+                os.makedirs(self.ruta_destino)
+            ruta_completa = f"{self.ruta_destino}/CubiScan_{self.fecha_actual}.xlsx" # Usar pathlib para construir la ruta
+
         workbook = openpyxl.Workbook()
         worksheet = workbook.active
         worksheet.title = "Medidas"
         
         # Encabezados
-        encabezados = ["SKU", "Largo", "Ancho", "Alto", "Peso", "Fecha"]
+        encabezados = ["SKU", "Largo", "Ancho", "Alto", "Peso", "Fecha", "Usuario"]
         for col_num, encabezado in enumerate(encabezados, 1):
             worksheet.cell(row=1, column=col_num, value=encabezado)
 
@@ -497,30 +475,57 @@ class SerialInterface:
         for row_num, item in enumerate(self.tree.get_children(), 2):
             datos_fila = [self.tree.item(item, 'values')[0], self.tree.item(item, 'values')[1],
                         self.tree.item(item, 'values')[2], self.tree.item(item, 'values')[3],
-                        self.tree.item(item, 'values')[4], self.tree.item(item, 'values')[5]]
+                        self.tree.item(item, 'values')[4], self.tree.item(item, 'values')[5], 
+                        self.tree.item(item, 'values')[6]]
             for col_num, valor in enumerate(datos_fila, 1):
                 worksheet.cell(row=row_num, column=col_num, value=valor)
 
         # Guardar el archivo Excel
-        #print(self.ruta_exportacion.get())
         self.guardar_configuracion()
         workbook.save(ruta_completa)
 
-#CONFIGURACIÓN DE CONTRASEÑA PARA ACCESO A VENTANA CONFIGURACIÓN
-    #Verificar contraseña guardada con contraseña ingresada al cambiar de pestaña. Contraseña inicial: MONTRA101
-    """def verificar_contraseña(self, event):
-        if self.notebook.tab(self.notebook.select(), "text") == "Configuración":
-            password = simpledialog.askstring("Contraseña", "Ingrese la contraseña:", show="*")
-            if password != self.contraseña_actual:  # Usar la contraseña actual almacenada
-                self.notebook.select(self.medicion_tab)
-                messagebox.showerror("Acceso denegado", "La contraseña ingresada es incorrecta. Acceso denegado a la pestaña de configuración.")"""
+    def exportar_log(self):
+        
+        text_to_export = self.response_entry.get("1.0", "end-1c")
+        # Abrir un cuadro de diálogo para seleccionar la carpeta de destino
+        folder_selected = "Log"
+        if not os.path.exists(folder_selected):
+            os.makedirs(folder_selected)
 
-    #Creación de ventana para cambiar contraseña.
+        if folder_selected:
+            # Combinar la carpeta seleccionada con el nombre del archivo
+            file_path = f"{folder_selected}/Log_{self.fecha_actual}.txt"
+
+            # Escribir el contenido en el archivo TXT
+            with open(file_path, "w") as file:
+                file.write(text_to_export)
+
+    def exportar_webservice_error(self):
+        log_to_export = self.webservice_error.get("1.0", "end-1c")
+        fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
+        # Abrir un cuadro de diálogo para seleccionar la carpeta de destino
+        log_folder_selected = "Log_WebService_Error"
+
+        if not os.path.exists(log_folder_selected):
+            os.makedirs(log_folder_selected)
+            
+        if log_folder_selected:
+            # Combinar la carpeta seleccionada con el nombre del archivo
+            log_file_path = f"{log_folder_selected}/Log_{fecha_actual}.txt"
+
+            # Escribir el contenido en el archivo TXT
+            with open(log_file_path, "w") as file:
+                file.write(log_to_export)
+                
+        #self.webservice_error.delete("1.0", "end")
+
+#CONFIGURACIÓN DE VENTANA PARA CREAR USUARIOS
+    #Creación de ventana para crear usuarios.
     def abrir_ventana_crear_usuario(self):
         # Ventana emergente para cambiar la contraseña
         self.crear_usuario_window = tk.Toplevel(self.root)
         self.crear_usuario_window.title("Crear usuario")
-        self.crear_usuario_window.iconbitmap('montra.ico')
+        self.crear_usuario_window.iconbitmap('Icons/montra.ico')
         self.crear_usuario_window.grab_set()
 
         ttk.Label(self.crear_usuario_window, text="Usuario:").grid(row=0, column=0, padx=10, pady=5, sticky="w")
@@ -551,13 +556,13 @@ class SerialInterface:
         else:
             messagebox.showerror(message="Debe completar todos los campos para crear usuario")
 
-
-    #Configuración para cerrar el puerto y guardar la configuración al cerrar la app.
+#CREACION DE METODO DE CIERRE DE APLICACIÓN.
     def cerrar_aplicacion(self):
         if hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
             self.cerrar_puerto()  # Cerrar el puerto si está abierto
         self.guardar_configuracion()  # Guardar la configuración antes de salir
         self.exportar_excel()
+        self.exportar_log()
         self.root.destroy()  # Cerrar la aplicación
 
 
@@ -641,6 +646,16 @@ class SerialInterface:
     
 
 #CONFIGURACIÓN ENVÍO JSON
+
+    def verificar_conexion_internet(self):
+        try:
+            # Intenta hacer una solicitud GET a un sitio web conocido
+            response = requests.get("https://www.google.com")
+            if response.status_code == 200:
+                return True
+        except requests.ConnectionError:
+            pass
+        return False
     #Configuración del envío de estructura JSON
     def send_data(self):
         # Obtener los valores de los campos
@@ -670,7 +685,6 @@ class SerialInterface:
             "weigth": self.weight_var.get(),
             "unit_type": "cm"
         }
-        print(data)
         
         # Verificar si alguno de los campos está en 0
         if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' or peso <= '0':
@@ -684,26 +698,44 @@ class SerialInterface:
             self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha, Usuario))
 
 
-        # Realizar la solicitud POST al WebService
-        url = self.url_var.get()
-        headers = {"Content-Type": "application/json"}
-        response = requests.post(url, data=json.dumps(data), headers=headers, auth=(self.username_var.get(), self.password_var.get()))
-        
         self.response_entry.tag_config('warning', foreground="red")
         self.response_entry.tag_config('ok', foreground="green")
-        #contador
-        if response.status_code == 200:
-            self.paquetes_enviados += 1
-            self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
-            self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente   
+        # Realizar la solicitud POST al WebService
+        if self.verificar_conexion_internet():
+            url = self.url_var.get()
+            headers = {"Content-Type": "application/json"}
+            response = requests.post(url, data=json.dumps(data), headers=headers, auth=(self.username_var.get(), self.password_var.get()))
+            #contador
+            if response.status_code == 200:
+                self.paquetes_enviados += 1
+                self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+                self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
+                self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente   
+            else:
+                self.paquetes_no_enviados += 1
+                self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+                self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
+                self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente
+                self.webservice_error= tk.Text()
+                data_text= str(data)
+                data_text= data_text.replace("'", '"')
+                self.webservice_error.insert(tk.END, data_text)
+                self.exportar_webservice_error()
         else:
             self.paquetes_no_enviados += 1
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
-            self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente  
-        # Actualizar la respuesta en la interfaz
-        #self.response_text.set(response.text)
+            self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: No hay comunicación con el HOST\n", 'warning')
+            self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente
+            self.webservice_error= tk.Text()
+            data_text= str(data)
+            data_text= data_text.replace("'", '"')
+            self.webservice_error.insert(tk.END, data_text)
+            self.exportar_webservice_error() 
+            messagebox.showerror("Error", "No hay comunicación con el host. Verifique su conexión a internet.")
+        
+
+        self.response_entry.see(tk.END)  # Desplaza la vista al final del texto
+        self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
         #actualizar contadores
         self.update_contadores()
         self.sku_var.set("")     # Borra el contenido del campo SKU
