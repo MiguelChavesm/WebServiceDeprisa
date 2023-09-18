@@ -1,0 +1,1 @@
+2023-09-18 13:42:06  SKU=234567, Respuesta WS: {"success":true,"message":"Medidas recibidas"}

@@ -1,0 +1,1 @@
+2023-09-18 12:41:56  SKU=565432, Respuesta WS: {"success":true,"message":"Medidas recibidas"}

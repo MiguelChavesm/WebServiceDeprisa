@@ -437,7 +437,6 @@ class SerialInterface:
 
 #CREACIÓN DE VENTANA DE CONFIGURACIÓN
     def create_configuracion_tab(self):
-
         self.url_var = tk.StringVar()
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
@@ -795,7 +794,6 @@ class SerialInterface:
         else:
             # Mostrar datos en la tabla
             self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha, Usuario))
-
 
         self.response_entry.tag_config('warning', foreground="red")
         self.response_entry.tag_config('ok', foreground="green")
