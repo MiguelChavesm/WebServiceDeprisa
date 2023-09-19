@@ -47,7 +47,7 @@ class SerialInterface:
         self.cargar_configuracion()
         
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
-        self.fecha_limite = (2023, 10, 15, 13, 45)
+        self.fecha_limite = (2023, 10, 19, 14, 38)
         
         self.verificar_fecha_limite_periodicamente()
         
@@ -67,7 +67,7 @@ class SerialInterface:
         # Compara la fecha actual con la fecha límite
         if fecha_actual >= self.fecha_limite:
             # Si ha pasado la fecha límite, muestra un mensaje y cierra la aplicación
-            mensaje = "La versión de prueba ha expirado. No puedes usar la aplicación."
+            mensaje = "La versión de prueba ha expirado. Comuniquese con el proveedor."
             messagebox.showerror("Versión de Prueba Expirada", mensaje)
             self.cerrar_aplicacion()
     
