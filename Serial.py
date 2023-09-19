@@ -9,7 +9,6 @@ import datetime
 import configparser
 import os
 import time
-import sys
 import uuid
 import sqlite3
 import openpyxl
@@ -30,9 +29,9 @@ class SerialInterface:
         root.iconbitmap('Icons/montra.ico')
         # Define el ancho y alto de la ventana
 
-        self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "bc:f1:71:f3:5f:60", "30-05-05-B8-BB-35"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
+        self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
+        #print(self.get_mac_address())
         self.texto_licencia="Desarrollado por Grupo Montra\nUso exclusivo para Deprisa\n\nLicencia: Deprisa Cartagena"
-
 
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
@@ -45,12 +44,12 @@ class SerialInterface:
         self.create_medicion_tab()
         self.create_configuracion_tab()
         #self.guardar_configuracion()
-        self.cargar_configuracion()
-        
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
-        
         self.notebook.bind("<<NotebookTabChanged>>", self.tab_changed)
         
+        self.cargar_configuracion()
+        
+            
         self.fecha_limite = (2023, 10, 15, 13, 45)
         
         self.verificar_fecha_limite_periodicamente()
@@ -59,7 +58,6 @@ class SerialInterface:
         self.paquetes_no_enviados = 0
         self.tiempo_espera = 2  # Tiempo en segundos para esperar la recepción de datos
         self.datos_recibidos = False  # Agrega esta línea para inicializar la variable
-        #print(self.get_mac_address())
 
 
 #CREACION LICENCIA TEMPORAL
@@ -322,20 +320,20 @@ class SerialInterface:
         ttk.Label(self.configuracion_tab, text="DATOS WEB SERVICE:",font=("Helvetica", 13)).grid(row=0, column=1, columnspan=2, padx=separacion_borde, pady=(20,5), sticky="w")
         
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, padx=separacion_borde, column=1, pady=5, sticky="w")
-        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*", width=27)
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, width=27)
         url_entry.grid(row=1, column=2, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=2, column=1, padx=separacion_borde, pady=5, sticky="w")
+        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var)
+        username_entry.grid(row=2, column=2, pady=5, sticky="w")
+        
+        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=3, column=1, padx=separacion_borde, pady=5, sticky="w")
+        password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password_var, show="*")
+        password_entry.grid(row=3, column=2, pady=5, sticky="w")
         
         ttk.Label(self.configuracion_tab, text="Máquina:").grid(row=4, column=1, padx=separacion_borde, pady=5, sticky="w")
         machine_name_entry = ttk.Entry(self.configuracion_tab, textvariable=self.machine_name_var)
         machine_name_entry.grid(row=4, column=2, pady=5, sticky="w")
-        
-        ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=2, column=1, padx=separacion_borde, pady=5, sticky="w")
-        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var, show="*")
-        username_entry.grid(row=2, column=2, pady=5, sticky="w")
-
-        ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=3, column=1, padx=separacion_borde, pady=5, sticky="w")
-        password_entry = ttk.Entry(self.configuracion_tab, textvariable=self.password_var, show="*")
-        password_entry.grid(row=3, column=2, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="EXPORTACIÓN DEL ARCHIVO",font=("Helvetica", 13)).grid(row=5, column=1, columnspan=3, padx=separacion_borde, pady=(20,5), sticky="w")
         ttk.Label(self.configuracion_tab, text="Ruta exportación:").grid(row=6, column=1, padx=separacion_borde, pady=5, sticky="w")
@@ -421,7 +419,8 @@ class SerialInterface:
         else:
             mensaje = "Este software solo puede ejecutarse en una computadora autorizada."
             messagebox.showerror("Error", mensaje)
-            root.destroy()  # Cierra la aplicación
+            self.cerrar_aplicacion()
+            #root.destroy()  # Cierra la aplicación
             
     #Guardar configuración en archivo.ini
     def guardar_configuracion(self):
@@ -451,6 +450,7 @@ class SerialInterface:
 
 #CONFIGURACIÓN PARA EXPORTACIÓN DE DATOS
     def exportar_excel(self):
+
         self.ruta_destino = Path(self.ruta_exportacion.get())
         self.fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
         nombre_archivo = f"CubiScan_{self.fecha_actual}.xlsx"
@@ -472,32 +472,33 @@ class SerialInterface:
             worksheet.cell(row=1, column=col_num, value=encabezado)
 
         # Datos
-        for row_num, item in enumerate(self.tree.get_children(), 2):
-            datos_fila = [self.tree.item(item, 'values')[0], self.tree.item(item, 'values')[1],
-                        self.tree.item(item, 'values')[2], self.tree.item(item, 'values')[3],
-                        self.tree.item(item, 'values')[4], self.tree.item(item, 'values')[5]]
-            for col_num, valor in enumerate(datos_fila, 1):
-                worksheet.cell(row=row_num, column=col_num, value=valor)
-
-        # Guardar el archivo Excel
-        self.guardar_configuracion()
-        workbook.save(ruta_completa)
-
+        if self.tree.get_children():
+            for row_num, item in enumerate(self.tree.get_children(), 2):
+                datos_fila = [self.tree.item(item, 'values')[0], self.tree.item(item, 'values')[1],
+                            self.tree.item(item, 'values')[2], self.tree.item(item, 'values')[3],
+                            self.tree.item(item, 'values')[4], self.tree.item(item, 'values')[5]]
+                for col_num, valor in enumerate(datos_fila, 1):
+                    worksheet.cell(row=row_num, column=col_num, value=valor)
+            
+            # Guardar el archivo Excel
+            self.guardar_configuracion()
+            workbook.save(ruta_completa)
+            
     def exportar_log(self):
-        
-        text_to_export = self.response_entry.get("1.0", "end-1c")
-        # Abrir un cuadro de diálogo para seleccionar la carpeta de destino
-        folder_selected = "Log"
-        if not os.path.exists(folder_selected):
-            os.makedirs(folder_selected)
+        if self.response_entry.get("1.0", "end-1c")!= "":
+            text_to_export = self.response_entry.get("1.0", "end-1c")
+            # Abrir un cuadro de diálogo para seleccionar la carpeta de destino
+            folder_selected = "Log"
+            if not os.path.exists(folder_selected):
+                os.makedirs(folder_selected)
 
-        if folder_selected:
-            # Combinar la carpeta seleccionada con el nombre del archivo
-            file_path = f"{folder_selected}/Log_{self.fecha_actual}.txt"
+            if folder_selected:
+                # Combinar la carpeta seleccionada con el nombre del archivo
+                file_path = f"{folder_selected}/Log_{self.fecha_actual}.txt"
 
-            # Escribir el contenido en el archivo TXT
-            with open(file_path, "w") as file:
-                file.write(text_to_export)
+                # Escribir el contenido en el archivo TXT
+                with open(file_path, "w") as file:
+                    file.write(text_to_export)
 
     def exportar_webservice_error(self):
         log_to_export = self.webservice_error.get("1.0", "end-1c")
@@ -544,28 +545,37 @@ class SerialInterface:
                     self.datos_recibidos = True  # Datos recibidos, detener temporizador
                     if "\x02" in dato and "\x03" in dato:
                         trama = dato.split("\x02")[1].split("\x03")[0]
-                        valores = trama.split(",")                        
+                        valores = trama.split(",")
+
+                        def procesar_medida(valor, factor):
+                            medida = valor.split()[1]
+                            valor = round(float(medida) * factor)
+                            return valor
+
+                        valor_posicion_4 = valores[4].strip()
+                        valor_posicion_7 = valores[7].strip()
+
+                        factor_conversion = 2.54 if valor_posicion_4 == "E" else 1.0
                         for valor in valores:
                             if valor.startswith("L"):
-                                largo = valor.split("L")[1]
-                                largo = round(float(largo))  # Convertir a número, redondear
+                                largo = procesar_medida(valor, factor_conversion)
                                 self.largo_entry.delete(0, tk.END)
                                 self.largo_entry.insert(0, str(largo))
                             elif valor.startswith("W"):
-                                ancho = valor.split("W")[1]
-                                ancho = round(float(ancho))  # Convertir a número, redondear
+                                ancho = procesar_medida(valor, factor_conversion)
                                 self.ancho_entry.delete(0, tk.END)
                                 self.ancho_entry.insert(0, str(ancho))
                             elif valor.startswith("H"):
-                                alto = valor.split("H")[1]
-                                alto = round(float(alto))  # Convertir a número, redondear
+                                alto = procesar_medida(valor, factor_conversion)
                                 self.alto_entry.delete(0, tk.END)
                                 self.alto_entry.insert(0, str(alto))
                             elif valor.startswith("K"):
-                                peso = valor.split("K")[1]
-                                peso = float(peso)
+                                if valor_posicion_7 == "E":
+                                    peso = round(float(valor.split()[1]) * 0.4536, 2)
+                                else:
+                                    peso = round(float(valor.split()[1]), 2)
                                 self.peso_entry.delete(0, tk.END)
-                                self.peso_entry.insert(0, peso)
+                                self.peso_entry.insert(0, str(peso))
                     self.verificar_datos_cubiscan()
             except:
                 pass
