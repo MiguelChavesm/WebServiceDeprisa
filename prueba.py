@@ -1,42 +1,101 @@
-import configparser
-from cryptography.fernet import Fernet
-import tempfile
+import tkinter as tk
+import sqlite3
+from tkinter import Scrollbar  
+from tkinter import ttk
 
-# Genera una clave de cifrado
-clave_cifrado = b'dG-OU1aAt4zYSR5hQuld09TNoZca3jHKGQsR-EJRLVY='
+# Crear una conexión a la base de datos o crearla si no existe
+conn = sqlite3.connect('MONTRADB.db')
+cursor = conn.cursor()
 
-# Crea un objeto Fernet con la clave de cifrado
-fernet = Fernet(clave_cifrado)
+# Crear la tabla si no existe
+cursor.execute('''CREATE TABLE IF NOT EXISTS LogIn (
+                  Usuario TEXT,
+                  Contraseña TEXT,
+                  Acceso TEXT)''')
+conn.commit()
 
-# Nombre del archivo cifrado
-archivo_cifrado = 'configuracion.ini'
+# Función para guardar los datos en la base de datos
+def guardar_datos():
+    usuario = entry_usuario.get()
+    contraseña = entry_contraseña.get()
+    acceso = entry_acceso.get()
+    cursor.execute("INSERT INTO LogIn VALUES (?, ?, ?)", (usuario, contraseña, acceso))
+    conn.commit()
+    actualizar_lista()
 
-# Lee el contenido cifrado del archivo
-with open(archivo_cifrado, 'rb') as archivo_ini:
-    contenido_cifrado = archivo_ini.read()
+# Función para mostrar los datos en la parte inferior
+def actualizar_lista():
 
-# Descifra el contenido
-contenido_desencriptado = fernet.decrypt(contenido_cifrado)
+# Definir etiquetas de estilo con colores
+    tree.tag_configure('ADMINISTRADOR', background='#FF6666') #ROJO
+    tree.tag_configure('OPERARIO', background='#B7FF66') #VERDE
+    tree.tag_configure('SUPERUSUARIO', background='#66DCFF') #AZUL
 
-# Convierte el contenido desencriptado en una cadena
-contenido_str = contenido_desencriptado.decode()
+    # Limpiar la tabla actual
+    for item in tree.get_children():
+        tree.delete(item)
 
-# Parsea el contenido como un archivo .ini
-config = configparser.ConfigParser()
-config.read_string(contenido_str)
+    # Consultar la base de datos y agregar los datos al Treeview
+    cursor.execute("SELECT * FROM LogIn")
+    for row in cursor.fetchall():
+        access_type = row[2]  # Obtener el tipo de acceso de la fila
+        tree.insert("", "end", values=row, tags=(access_type.upper(),))  # Asignar la etiqueta de estilo en mayúsculas
+        
+# Crear la ventana principal
+root = tk.Tk()
+root.title("Aplicación de Registro")
 
-# Ahora puedes acceder a los valores del archivo .ini
-url = config['Configuracion'].get('url', '')
-username = config['Configuracion'].get('username', '')
-password = config['Configuracion'].get('password', '')
-machine_name = config['Configuracion'].get('machine_name', '')
-ruta_exportacion = config['Configuracion'].get('ruta_exportacion', '')
-ultimo_puerto = config['Configuracion'].get('ultimo_puerto', '')
+# Crear una lista de opciones para el campo de "Acceso"
+opciones_acceso = ["ADMINISTRADOR", "OPERARIO"]
 
-# Utiliza los valores según sea necesario
-print(f"URL: {url}")
-print(f"Username: {username}")
-print(f"Password: {password}")
-print(f"Machine Name: {machine_name}")
-print(f"Ruta Exportación: {ruta_exportacion}")
-print(f"Último Puerto: {ultimo_puerto}")
+# Crear un StringVar para el campo de "Acceso"
+var_acceso = tk.StringVar()
+
+
+# Crear campos de entrada
+label_usuario = tk.Label(root, text="Usuario:")
+entry_usuario = tk.Entry(root)
+label_contraseña = tk.Label(root, text="Contraseña:")
+entry_contraseña = tk.Entry(root)
+# Crear el campo de "Acceso" con una lista desplegable
+label_acceso = tk.Label(root, text="Acceso:")
+entry_acceso = ttk.Combobox(root, textvariable=var_acceso, values=opciones_acceso)
+
+# Inicializar la lista desplegable con el primer elemento
+var_acceso.set(opciones_acceso[0])
+
+# Botón para guardar datos
+button_guardar = tk.Button(root, text="Guardar", command=guardar_datos)
+
+# Lista para mostrar los datos
+#list_box = tk.Listbox(root, width=40)
+tree = ttk.Treeview(root, columns=("Usuario", "Contraseña", "Acceso"), show="headings")
+scrollbar = Scrollbar(root, orient=tk.VERTICAL, command=tree.yview)
+
+# Configurar las columnas
+tree.heading("Usuario", text="Usuario")
+tree.heading("Contraseña", text="Contraseña")
+tree.heading("Acceso", text="Acceso")
+
+# Vincula el Scrollbar a la lista
+tree.config(yscrollcommand=scrollbar.set)
+
+# Colocar widgets en la ventana
+label_usuario.grid(row=0, column=0)
+entry_usuario.grid(row=0, column=1)
+label_contraseña.grid(row=1, column=0)
+entry_contraseña.grid(row=1, column=1)
+label_acceso.grid(row=2, column=0)
+entry_acceso.grid(row=2, column=1)
+button_guardar.grid(row=3, column=0, columnspan=2)
+tree.grid(row=4, column=0, columnspan=3, padx=10, pady=10)  # Ajusta el padx y pady según tus preferencias
+scrollbar.grid(row=4, column=3, sticky="ns")
+
+# Actualizar la lista de datos al inicio
+actualizar_lista()
+
+# Iniciar la aplicación
+root.mainloop()
+
+# Cerrar la conexión a la base de datos cuando se cierra la aplicación
+conn.close()
