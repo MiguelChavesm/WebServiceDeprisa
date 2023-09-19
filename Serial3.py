@@ -808,12 +808,12 @@ class SerialInterface:
             if response.status_code == 200:
                 self.paquetes_enviados += 1
                 self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-                self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
+                self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
                 self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente   
             else:
                 self.paquetes_no_enviados += 1
                 self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-                self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
+                self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
                 self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente
                 self.webservice_error= tk.Text()
                 data_text= str(data)
@@ -823,7 +823,7 @@ class SerialInterface:
         else:
             self.paquetes_no_enviados += 1
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: No hay comunicación con el HOST\n", 'warning')
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: No hay comunicación con el HOST\n", 'warning')
             self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente
             self.webservice_error= tk.Text()
             data_text= str(data)

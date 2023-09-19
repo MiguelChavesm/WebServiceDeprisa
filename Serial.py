@@ -22,7 +22,6 @@ from cryptography.fernet import Fernet
 
 clave_cifrado = b'jvXOzwTyfQusXwZBgh0d2GdT0gMCvdR8oOWkFQPpx9o='
 fernet = Fernet(clave_cifrado)
-print(clave_cifrado)
 
 class SerialInterface:
     def __init__(self, root):
