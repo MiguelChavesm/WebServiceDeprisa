@@ -1,186 +1,101 @@
-import customtkinter
 import tkinter as tk
+import sqlite3
+from tkinter import Scrollbar  
 from tkinter import ttk
-import requests
-import json
-import datetime
-from PIL import Image
 
+# Crear una conexión a la base de datos o crearla si no existe
+conn = sqlite3.connect('MONTRADB.db')
+cursor = conn.cursor()
 
+# Crear la tabla si no existe
+cursor.execute('''CREATE TABLE IF NOT EXISTS LogIn (
+                  Usuario TEXT,
+                  Contraseña TEXT,
+                  Acceso TEXT)''')
+conn.commit()
 
-class WebServiceApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Web Service Client")
-        root.iconbitmap('Icons/montra.ico')
+# Función para guardar los datos en la base de datos
+def guardar_datos():
+    usuario = entry_usuario.get()
+    contraseña = entry_contraseña.get()
+    acceso = entry_acceso.get()
+    cursor.execute("INSERT INTO LogIn VALUES (?, ?, ?)", (usuario, contraseña, acceso))
+    conn.commit()
+    actualizar_lista()
 
-        # Crear pestañas
-        self.notebook = ttk.Notebook(root)
-        self.medicion_tab = ttk.Frame(self.notebook)
-        self.configuracion_tab = ttk.Frame(self.notebook)
-        self.notebook.add(self.medicion_tab, text="Enviar Datos")
-        self.notebook.add(self.configuracion_tab, text="Configuración")
-        self.notebook.pack(fill="both", expand=True)
-        self.create_medicion_tab()
-        self.create_configuracion_tab()
+# Función para mostrar los datos en la parte inferior
+def actualizar_lista():
+
+# Definir etiquetas de estilo con colores
+    tree.tag_configure('ADMINISTRADOR', background='#FF6666') #ROJO
+    tree.tag_configure('OPERARIO', background='#B7FF66') #VERDE
+    tree.tag_configure('SUPERUSUARIO', background='#66DCFF') #AZUL
+
+    # Limpiar la tabla actual
+    for item in tree.get_children():
+        tree.delete(item)
+
+    # Consultar la base de datos y agregar los datos al Treeview
+    cursor.execute("SELECT * FROM LogIn")
+    for row in cursor.fetchall():
+        access_type = row[2]  # Obtener el tipo de acceso de la fila
+        tree.insert("", "end", values=row, tags=(access_type.upper(),))  # Asignar la etiqueta de estilo en mayúsculas
         
-        self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
+# Crear la ventana principal
+root = tk.Tk()
+root.title("Aplicación de Registro")
 
-    def cerrar_aplicacion(self):
-        self.root.destroy()
-    
-    def imagenes(self):
-        self.logo_montra = tk.PhotoImage(file="Icons/Logo_Montra3.png")
-        self.logo_montra = self.logo_montra.subsample(1, 1)
-        
-        self.logo_cubiscan = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
-        self.logo_cubiscan = self.logo_cubiscan.subsample(1, 1)
-        
-        self.logo_deprisa = tk.PhotoImage(file="Icons/Deprisa_logo.png")
-        self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
-        
-    def create_medicion_tab(self):
-        self.imagenes()
-        self.sku_var = tk.StringVar()
-        self.length_var = tk.StringVar()
-        self.width_var = tk.StringVar()
-        self.height_var = tk.StringVar()
-        self.weight_var = tk.StringVar()
-        self.response_text = tk.StringVar()
+# Crear una lista de opciones para el campo de "Acceso"
+opciones_acceso = ["ADMINISTRADOR", "OPERARIO"]
 
-        # Insertarla en una etiqueta.
-        self.colorbackground= "lightgrey"
-        self.background = ttk.Label(self.medicion_tab, background=self.colorbackground)
-        self.background.grid(row=0, column=0, rowspan=9,padx=(0,20), sticky="snew")
-        
-        label_montra = ttk.Label(self.medicion_tab, image=self.logo_montra, background=self.colorbackground)
-        label_montra.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
-        
-        label_deprisa = ttk.Label(self.medicion_tab, image=self.logo_deprisa, background=self.colorbackground)
-        label_deprisa.grid(row=4, column=0, rowspan=2, padx=(15,20), pady=10, sticky="ew")
-        
-        label_cubiscan = ttk.Label(self.medicion_tab, image=self.logo_cubiscan,background=self.colorbackground)
-        label_cubiscan.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
-        
-        # Botón de cerrar de sesión
-        logout_image = customtkinter.CTkImage(Image.open("Icons/logout.png").resize((100,100), Image.Resampling.LANCZOS))
-        boton_logout = customtkinter.CTkButton(self.medicion_tab, text="Cerrar Sesión", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= logout_image)
-        boton_logout.grid(row=5, column=0, columnspan=1, padx=(10,30), pady=5, sticky="new")
-        
-        ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=1, padx=10, pady=5, sticky="w")
-        self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
-        self.sku_entry.grid(row=0, column=2, padx=10, pady=0, ipadx=15)
+# Crear un StringVar para el campo de "Acceso"
+var_acceso = tk.StringVar()
 
-        self.send_button = ttk.Button(self.medicion_tab, text="Enviar",  compound="right", command=self.send_data)
-        self.send_button.grid(row=2, rowspan=1, column=1, columnspan=2 ,padx=10, pady=0, sticky="n")
 
-        ttk.Label(self.medicion_tab, text="Largo:").grid(row=0, column=3, padx=10, pady=5, sticky="w")
-        self.largo_entry = ttk.Entry(self.medicion_tab, textvariable=self.length_var)
-        self.largo_entry.grid(row=0, column=4, padx=10, pady=5)
+# Crear campos de entrada
+label_usuario = tk.Label(root, text="Usuario:")
+entry_usuario = tk.Entry(root)
+label_contraseña = tk.Label(root, text="Contraseña:")
+entry_contraseña = tk.Entry(root)
+# Crear el campo de "Acceso" con una lista desplegable
+label_acceso = tk.Label(root, text="Acceso:")
+entry_acceso = ttk.Combobox(root, textvariable=var_acceso, values=opciones_acceso)
 
-        ttk.Label(self.medicion_tab, text="Ancho:").grid(row=1, column=3, padx=10, pady=5, sticky="w")
-        self.ancho_entry = ttk.Entry(self.medicion_tab, textvariable=self.width_var)
-        self.ancho_entry.grid(row=1, column=4, padx=10, pady=5)
+# Inicializar la lista desplegable con el primer elemento
+var_acceso.set(opciones_acceso[0])
 
-        ttk.Label(self.medicion_tab, text="Alto:").grid(row=2, column=3, padx=10, pady=5, sticky="w")
-        self.alto_entry = ttk.Entry(self.medicion_tab, textvariable=self.height_var)
-        self.alto_entry.grid(row=2, column=4, padx=10, pady=5)
+# Botón para guardar datos
+button_guardar = tk.Button(root, text="Guardar", command=guardar_datos)
 
-        ttk.Label(self.medicion_tab, text="Peso:").grid(row=3, column=3, padx=10, pady=5, sticky="w")
-        self.peso_entry = ttk.Entry(self.medicion_tab, textvariable=self.weight_var)
-        self.peso_entry.grid(row=3, column=4, padx=10, pady=5)
+# Lista para mostrar los datos
+#list_box = tk.Listbox(root, width=40)
+tree = ttk.Treeview(root, columns=("Usuario", "Contraseña", "Acceso"), show="headings")
+scrollbar = Scrollbar(root, orient=tk.VERTICAL, command=tree.yview)
 
-        ttk.Label(self.medicion_tab, text="Respuesta:").grid(row=5, column=1, columnspan=2, padx=5, sticky="w")
-        self.response_entry = tk.Text(self.medicion_tab, state="disabled", background="#FCFFD0", font=("Arial", 10))
-        self.response_entry.config(width=20, height=5)
-        self.response_entry.grid(row=6, column=1, columnspan=20, pady=5, sticky="nsew")
+# Configurar las columnas
+tree.heading("Usuario", text="Usuario")
+tree.heading("Contraseña", text="Contraseña")
+tree.heading("Acceso", text="Acceso")
 
-        
-        # Crear la tabla para mostrar los datos
-        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Usuario')
-        self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
+# Vincula el Scrollbar a la lista
+tree.config(yscrollcommand=scrollbar.set)
 
-        for col in columns:
-            self.tree.heading(col, text=col)
-            self.tree.column('Sku', width=200)
-            self.tree.column('Largo', width=50)
-            self.tree.column('Ancho', width=50)
-            self.tree.column('Alto', width=50)
-            self.tree.column('Peso', width=50)
-            self.tree.column('Fecha', width=130)
-            self.tree.column('Usuario', width=80)
-            #self.tree.column(col, width=100)
+# Colocar widgets en la ventana
+label_usuario.grid(row=0, column=0)
+entry_usuario.grid(row=0, column=1)
+label_contraseña.grid(row=1, column=0)
+entry_contraseña.grid(row=1, column=1)
+label_acceso.grid(row=2, column=0)
+entry_acceso.grid(row=2, column=1)
+button_guardar.grid(row=3, column=0, columnspan=2)
+tree.grid(row=4, column=0, columnspan=3, padx=10, pady=10)  # Ajusta el padx y pady según tus preferencias
+scrollbar.grid(row=4, column=3, sticky="ns")
 
-        self.tree.grid(row=4, column=1, columnspan=20, pady=(10,10))
-        
-        # Aplicar un estilo con bordes a la tabla
-        style = ttk.Style()
-        style.configure("Treeview", font=('Helvetica', 9), rowheight=20)
-        style.configure("Treeview.Heading", font=('Helvetica', 9))
-        style.configure("Treeview.Treeview", borderwidth=1)  # Esto añade bordes alrededor de cada celda
-        
-        # Crear barras de desplazamiento
-        y_scroll = ttk.Scrollbar(self.medicion_tab, orient="vertical", command=self.tree.yview)
-        y_scroll.grid(row=4, column=21, sticky='ns')
-        self.tree.configure(yscrollcommand=y_scroll.set)
-        
-        
-        #Etiquetas del contador
-        self.paquetes_enviados_label = tk.Label(self.medicion_tab, text="Envíos exitosos: 0", font=("verdama", 10), fg='green')
-        self.paquetes_enviados_label.grid(row=7, column=1, columnspan=2)
+# Actualizar la lista de datos al inicio
+actualizar_lista()
 
-        self.paquetes_no_enviados_label = tk.Label(self.medicion_tab, text="Envíos fallidos: 0", font=("Verdana", 10), fg='red')
-        self.paquetes_no_enviados_label.grid(row=7,column=3, columnspan=2)
+# Iniciar la aplicación
+root.mainloop()
 
-    def create_configuracion_tab(self):
-        self.url_var = tk.StringVar()
-        self.username_var = tk.StringVar()
-        self.password_var = tk.StringVar()
-        self.machine_name_var = tk.StringVar()
-
-        url_label = tk.Label(self.configuracion_tab, text="URL del Web Service:")
-        url_label.grid(row=0, column=0)
-        url_entry = tk.Entry(self.configuracion_tab, textvariable=self.url_var)
-        url_entry.grid(row=0, column=1)
-
-        username_label = tk.Label(self.configuracion_tab, text="Usuario:")
-        username_label.grid(row=1, column=0)
-        username_entry = tk.Entry(self.configuracion_tab, textvariable=self.username_var)
-        username_entry.grid(row=1, column=1)
-
-        password_label = tk.Label(self.configuracion_tab, text="Contraseña:")
-        password_label.grid(row=2, column=0)
-        password_entry = tk.Entry(self.configuracion_tab, textvariable=self.password_var, show="*")
-        password_entry.grid(row=2, column=1)
-
-        machine_name_label = tk.Label(self.configuracion_tab, text="Nombre de la Máquina:")
-        machine_name_label.grid(row=3, column=0)
-        machine_name_entry = tk.Entry(self.configuracion_tab, textvariable=self.machine_name_var)
-        machine_name_entry.grid(row=3, column=1)
-
-    def send_data(self):
-        # Construir el JSON con los datos ingresados
-        data = {
-            "machine_pid": self.machine_name_var.get(),
-            "code": self.sku_var.get(),
-            "measure_date": datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
-            "length": self.length_var.get(),
-            "width": self.width_var.get(),
-            "height": self.height_var.get(),
-            "weight": self.weight_var.get(),
-            "unit_type": "cm"
-        }
-
-        # Realizar la solicitud POST al WebService
-        url = self.url_var.get()
-        headers = {"Content-Type": "application/json"}
-        response = requests.post(url, data=json.dumps(data), headers=headers, auth=(self.username_var.get(), self.password_var.get()))
-
-        # Actualizar la respuesta en la interfaz
-        self.response_text.set(response.text)
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.resizable(False,False)
-    app = WebServiceApp(root)
-    root.mainloop()
+# Cerrar la conexión a la base de datos cuando se cierra la aplicación
+conn.close()
