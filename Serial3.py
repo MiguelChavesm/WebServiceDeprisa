@@ -238,7 +238,7 @@ class SerialInterface:
         
         self.actualizar_tabla()
         
-    def actualizar_tabla (self):
+    def actualizar_tabla(self):
         self.tree2.tag_configure('ADMINISTRADOR', background='#FF6666') #ROJO
         self.tree2.tag_configure('OPERARIO', background='#B7FF66') #VERDE
         self.tree2.tag_configure('SUPERUSUARIO', background='#66DCFF') #AZUL
@@ -252,7 +252,10 @@ class SerialInterface:
         cursor.execute("SELECT * FROM LogIn")
         for row in cursor.fetchall():
             access_type = row[2] # Obtener el tipo de acceso de la fila
-            contraseña_oculta = self.ocultar_contraseña(row[1])
+            if access_type == 'SUPERUSUARIO':
+                contraseña_oculta = self.ocultar_contraseña(row[1])
+            else:
+                contraseña_oculta = row[1]
             row_with_asterisks = (row[0], contraseña_oculta, row[2])
             self.tree2.insert("", "end", values=row_with_asterisks, tags=(access_type.upper(),))
         conn.close()
@@ -596,11 +599,11 @@ class SerialInterface:
 
 #CONFIGURACIÓN PARA EXPORTACIÓN DE DATOS
     def exportar_excel(self):
+
         self.ruta_destino = Path(self.ruta_exportacion.get())
         self.fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
         nombre_archivo = f"CubiScan_{self.fecha_actual}.xlsx"
         ruta_completa = self.ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
-
     # Verificar si la carpeta de destino existe
         if self.ruta_exportacion.get() =="" or not self.ruta_destino.exists() or not self.ruta_destino.is_dir():
             self.ruta_destino="Export"
@@ -613,38 +616,38 @@ class SerialInterface:
         worksheet.title = "Medidas"
         
         # Encabezados
-        encabezados = ["SKU", "Largo", "Ancho", "Alto", "Peso", "Fecha", "Usuario"]
+        encabezados = ["SKU", "Largo", "Ancho", "Alto", "Peso", "Fecha"]
         for col_num, encabezado in enumerate(encabezados, 1):
             worksheet.cell(row=1, column=col_num, value=encabezado)
 
         # Datos
-        for row_num, item in enumerate(self.tree.get_children(), 2):
-            datos_fila = [self.tree.item(item, 'values')[0], self.tree.item(item, 'values')[1],
-                        self.tree.item(item, 'values')[2], self.tree.item(item, 'values')[3],
-                        self.tree.item(item, 'values')[4], self.tree.item(item, 'values')[5], 
-                        self.tree.item(item, 'values')[6]]
-            for col_num, valor in enumerate(datos_fila, 1):
-                worksheet.cell(row=row_num, column=col_num, value=valor)
-
-        # Guardar el archivo Excel
-        self.guardar_configuracion()
-        workbook.save(ruta_completa)
-
+        if self.tree.get_children():
+            for row_num, item in enumerate(self.tree.get_children(), 2):
+                datos_fila = [self.tree.item(item, 'values')[0], self.tree.item(item, 'values')[1],
+                            self.tree.item(item, 'values')[2], self.tree.item(item, 'values')[3],
+                            self.tree.item(item, 'values')[4], self.tree.item(item, 'values')[5]]
+                for col_num, valor in enumerate(datos_fila, 1):
+                    worksheet.cell(row=row_num, column=col_num, value=valor)
+            
+            # Guardar el archivo Excel
+            self.guardar_configuracion()
+            workbook.save(ruta_completa)
+            
     def exportar_log(self):
-        
-        text_to_export = self.response_entry.get("1.0", "end-1c")
-        # Abrir un cuadro de diálogo para seleccionar la carpeta de destino
-        folder_selected = "Log"
-        if not os.path.exists(folder_selected):
-            os.makedirs(folder_selected)
+        if self.response_entry.get("1.0", "end-1c")!= "":
+            text_to_export = self.response_entry.get("1.0", "end-1c")
+            # Abrir un cuadro de diálogo para seleccionar la carpeta de destino
+            folder_selected = "Log"
+            if not os.path.exists(folder_selected):
+                os.makedirs(folder_selected)
 
-        if folder_selected:
-            # Combinar la carpeta seleccionada con el nombre del archivo
-            file_path = f"{folder_selected}/Log_{self.fecha_actual}.txt"
+            if folder_selected:
+                # Combinar la carpeta seleccionada con el nombre del archivo
+                file_path = f"{folder_selected}/Log_{self.fecha_actual}.txt"
 
-            # Escribir el contenido en el archivo TXT
-            with open(file_path, "w") as file:
-                file.write(text_to_export)
+                # Escribir el contenido en el archivo TXT
+                with open(file_path, "w") as file:
+                    file.write(text_to_export)
 
     def exportar_webservice_error(self):
         log_to_export = self.webservice_error.get("1.0", "end-1c")
@@ -691,28 +694,37 @@ class SerialInterface:
                     self.datos_recibidos = True  # Datos recibidos, detener temporizador
                     if "\x02" in dato and "\x03" in dato:
                         trama = dato.split("\x02")[1].split("\x03")[0]
-                        valores = trama.split(",")                        
+                        valores = trama.split(",")
+
+                        def procesar_medida(valor, factor):
+                            medida = valor.split()[1]
+                            valor = round(float(medida) * factor)
+                            return valor
+
+                        valor_posicion_4 = valores[4].strip()
+                        valor_posicion_7 = valores[7].strip()
+
+                        factor_conversion = 2.54 if valor_posicion_4 == "E" else 1.0
                         for valor in valores:
                             if valor.startswith("L"):
-                                largo = valor.split("L")[1]
-                                largo = round(float(largo))  # Convertir a número, redondear
+                                largo = procesar_medida(valor, factor_conversion)
                                 self.largo_entry.delete(0, tk.END)
                                 self.largo_entry.insert(0, str(largo))
                             elif valor.startswith("W"):
-                                ancho = valor.split("W")[1]
-                                ancho = round(float(ancho))  # Convertir a número, redondear
+                                ancho = procesar_medida(valor, factor_conversion)
                                 self.ancho_entry.delete(0, tk.END)
                                 self.ancho_entry.insert(0, str(ancho))
                             elif valor.startswith("H"):
-                                alto = valor.split("H")[1]
-                                alto = round(float(alto))  # Convertir a número, redondear
+                                alto = procesar_medida(valor, factor_conversion)
                                 self.alto_entry.delete(0, tk.END)
                                 self.alto_entry.insert(0, str(alto))
                             elif valor.startswith("K"):
-                                peso = valor.split("K")[1]
-                                peso = float(peso)
+                                if valor_posicion_7 == "E":
+                                    peso = round(float(valor.split()[1]) * 0.4536, 2)
+                                else:
+                                    peso = round(float(valor.split()[1]), 2)
                                 self.peso_entry.delete(0, tk.END)
-                                self.peso_entry.insert(0, peso)
+                                self.peso_entry.insert(0, str(peso))
                     self.verificar_datos_cubiscan()
             except:
                 pass
@@ -808,12 +820,12 @@ class SerialInterface:
             if response.status_code == 200:
                 self.paquetes_enviados += 1
                 self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-                self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
+                self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
                 self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente   
             else:
                 self.paquetes_no_enviados += 1
                 self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-                self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
+                self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
                 self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente
                 self.webservice_error= tk.Text()
                 data_text= str(data)
@@ -823,7 +835,7 @@ class SerialInterface:
         else:
             self.paquetes_no_enviados += 1
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-            self.response_entry.insert(tk.END, f"SKU={sku}, Respuesta WS: No hay comunicación con el HOST\n", 'warning')
+            self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: No hay comunicación con el HOST\n", 'warning')
             self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente
             self.webservice_error= tk.Text()
             data_text= str(data)
