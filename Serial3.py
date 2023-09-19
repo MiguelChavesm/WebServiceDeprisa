@@ -26,7 +26,7 @@ class SerialInterface:
         root.iconbitmap('Icons/montra.ico')
         # Define el ancho y alto de la ventana
 
-        self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "bc:f1:71:f3:5f:60", "30-05-05-B8-BB-35"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
+        self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
         self.texto_licencia="Desarrollado por Grupo Montra\nUso exclusivo para Deprisa\n\nLicencia: Deprisa Cartagena"
         self.perfil_acceso= ""
         self.valores_combox=[]
@@ -474,7 +474,7 @@ class SerialInterface:
         ttk.Label(self.configuracion_tab, text="DATOS WEB SERVICE:",font=("Helvetica", 13)).grid(row=0, column=1, columnspan=2, padx=separacion_borde, pady=(20,5), sticky="w")
         
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, padx=separacion_borde, column=1, pady=5, sticky="w")
-        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*", width=27)
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, width=27)
         url_entry.grid(row=1, column=2, pady=5, sticky="w")
         
         ttk.Label(self.configuracion_tab, text="Máquina:").grid(row=4, column=1, padx=separacion_borde, pady=5, sticky="w")
@@ -482,7 +482,7 @@ class SerialInterface:
         machine_name_entry.grid(row=4, column=2, pady=5, sticky="w")
         
         ttk.Label(self.configuracion_tab, text="Usuario:").grid(row=2, column=1, padx=separacion_borde, pady=5, sticky="w")
-        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var, show="*")
+        username_entry = ttk.Entry(self.configuracion_tab, textvariable=self.username_var)
         username_entry.grid(row=2, column=2, pady=5, sticky="w")
 
         ttk.Label(self.configuracion_tab, text="Contraseña:").grid(row=3, column=1, padx=separacion_borde, pady=5, sticky="w")
