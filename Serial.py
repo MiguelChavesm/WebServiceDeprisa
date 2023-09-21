@@ -2,6 +2,7 @@ import serial
 import serial.tools.list_ports
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkinter import *
 import threading
 import requests
 import json
@@ -17,6 +18,7 @@ from tkinter import filedialog
 import customtkinter
 from PIL import Image
 from cryptography.fernet import Fernet
+import socket
 
 
 clave_cifrado = b'jvXOzwTyfQusXwZBgh0d2GdT0gMCvdR8oOWkFQPpx9o='
@@ -130,6 +132,7 @@ class SerialInterface:
             login_button = ttk.Button(self.login_window, text="Ingresar", command=check_credentials)
             login_button.grid(row=2, column=0, columnspan=2, pady=10)
             self.login_window.bind("<Return>", lambda event: check_credentials())
+            self.login_window.grab_set()
             self.login_window.protocol("WM_DELETE_WINDOW", self.cerrar_ventana)
 
     def cerrar_ventana(self):
@@ -178,7 +181,7 @@ class SerialInterface:
         label_cubiscan = ttk.Label(self.medicion_tab, image=self.logo_cubiscan,background=self.colorbackground)
         label_cubiscan.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
 
-        ttk.Label(self.medicion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=6, rowspan=1, column=0, padx=(5,0), pady=(0,5), sticky="w")
+        ttk.Label(self.medicion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=6, rowspan=1, column=0, padx=(5,0), pady=(0,47), sticky="w")
         
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=1, padx=10, pady=5, sticky="w")
         self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
@@ -293,7 +296,11 @@ class SerialInterface:
         self.password_var = tk.StringVar()
         self.machine_name_var = tk.StringVar()
         self.ruta_exportacion = tk.StringVar()
-        
+        self.tipo_comunicacion=tk.StringVar()
+        self.direccionip=tk.StringVar()
+        self.puertoip=tk.StringVar()
+        self.tcp_ip_connection = None
+
         # Insertarla en una etiqueta.
         self.colorbackground= "lightgrey"
         self.background = ttk.Label(self.configuracion_tab, background=self.colorbackground)
@@ -311,12 +318,12 @@ class SerialInterface:
         separacion_borde=(0,0)
     
         save_image = customtkinter.CTkImage(Image.open("Icons/save.png").resize((100,100), Image.Resampling.LANCZOS))
-        boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=200, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
+        boton_save = customtkinter.CTkButton(self.configuracion_tab, text="Guardar Configuración", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=120, height=20, compound="left", image= save_image, command=self.guardar_configuracion)
         boton_save.grid(row=9, column=0, padx=(10,30), pady=10)
 
 
-
-        ttk.Label(self.configuracion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=12, rowspan=1, column=0, pady=(5,20), padx=(5,20), sticky="w")
+        ttk.Label(self.configuracion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=11, rowspan=3, column=0, pady=(5,5), padx=(5,20), sticky="nw")
+        
         ttk.Label(self.configuracion_tab, text="DATOS WEB SERVICE:",font=("Helvetica", 13)).grid(row=0, column=1, columnspan=2, padx=separacion_borde, pady=(20,5), sticky="w")
         
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, padx=separacion_borde, column=1, pady=5, sticky="w")
@@ -345,27 +352,73 @@ class SerialInterface:
         seleccionar_carpeta_button = customtkinter.CTkButton(self.configuracion_tab, text="", corner_radius=1,font=("Helvetica", 14), text_color="#000000", fg_color="#FFFFFF", hover_color="#828890", width=20, height=20, compound="left", image= seleccionar_ruta_image, command=self.seleccionar_carpeta)
         seleccionar_carpeta_button.grid(row=6, column=3, columnspan=4, padx=(125,0), pady=5, sticky="w")
         
-        ttk.Label(self.configuracion_tab, text="CONFIGURACIÓN DE COMUNICACIÓN:",font=("Helvetica", 13)).grid(row=8, column=1, columnspan=3, padx=separacion_borde, pady=(20,5), sticky="w")
-        ttk.Label(self.configuracion_tab, text="Puertos COM disponibles:").grid(row=9,column=1, padx=separacion_borde, pady=5, sticky="w")
+
+        ttk.Label(self.configuracion_tab, text="CONFIGURACIÓN DE COMUNICACIÓN:",font=("Helvetica", 13)).grid(row=8, column=1, columnspan=3, padx=separacion_borde, pady=(5,5), sticky="w")
+        
+
+        Radiobutton(self.configuracion_tab,text="Serial Port", value="Serial", variable=self.tipo_comunicacion, font="Helvetica 10", command=self.sel_tipo_comunicacion).grid(row=9, column=1, columnspan=2, padx=(0,0), pady=5, sticky="w")
+
+        Radiobutton(self.configuracion_tab, text="TCP/IP", value="IP", font="Helvetica 10",variable=self.tipo_comunicacion, command=self.sel_tipo_comunicacion).grid(row=9, column=2, columnspan=2, padx=(0,0), pady=5, sticky="w")
+        
+        
+        ttk.Label(self.configuracion_tab, text="Seleccione el Puerto COM:").grid(row=10,column=1, padx=separacion_borde, pady=5, sticky="w")
         self.puertos_combobox = ttk.Combobox(self.configuracion_tab)
-        self.puertos_combobox.grid(row=9, column=2, padx=5, pady=5)
+        self.puertos_combobox.grid(row=10, column=2, padx=5, pady=5)
 
         self.actualizar_puertos_button = ttk.Button(self.configuracion_tab, text="Actualizar puertos", command=self.listar_puertos)
-        self.actualizar_puertos_button.grid(row=9, column=3, padx=5, pady=5, sticky="w")
+        self.actualizar_puertos_button.grid(row=10, column=3, padx=5, pady=5, sticky="w")
 
         self.abrir_puerto_button = ttk.Button(self.configuracion_tab, text="Abrir Puerto", command=self.abrir_puerto)
-        self.abrir_puerto_button.grid(row=10, column=2, padx=5, pady=5,  sticky="nw")
+        self.abrir_puerto_button.grid(row=11, column=2, padx=5, pady=5,  sticky="nw")
 
         self.cerrar_puerto_button = ttk.Button(self.configuracion_tab, text="Cerrar Puerto", command=self.cerrar_puerto)
-        self.cerrar_puerto_button.grid(row=10, column=2, padx=5, pady=5, sticky="ne")
+        self.cerrar_puerto_button.grid(row=11, column=2, padx=5, pady=5, sticky="ne")
         self.cerrar_puerto_button.configure(state="disabled")
+        
+        ttk.Label(self.configuracion_tab, text="Dirección IP:").grid(row=12,column=1, padx=separacion_borde, pady=(15,5), sticky="w")
+        self.direccionip_entry = ttk.Entry(self.configuracion_tab, textvariable=self.direccionip)
+        self.direccionip_entry.grid(row=12, column=1, columnspan=2, padx=5, pady=(15,5))
+        
+        ttk.Label(self.configuracion_tab, text="Puerto IP:").grid(row=13,column=1, padx=separacion_borde, pady=(0,10), sticky="w")
+        self.puertoip_entry = ttk.Entry(self.configuracion_tab, textvariable=self.puertoip)
+        self.puertoip_entry.grid(row=13, column=1, columnspan=2, padx=5, pady=0)
+        
+        self.conectar_ip_button = ttk.Button(self.configuracion_tab, text="Conectar", command=self.conectar_TCP_IP)
+        self.conectar_ip_button.grid(row=12, column=2, padx=5, pady=(5,0),  sticky="e")
+        
+        self.desconectar_ip_button = ttk.Button(self.configuracion_tab, text="Desconectar", command=self.desconectar_TCP_IP)
+        self.desconectar_ip_button.grid(row=13, column=2, padx=5, pady=0,  sticky="e")
 
     #Configuración de boton para escoger carpeta de exportación
     def seleccionar_carpeta(self):
         folder_selected = filedialog.askdirectory(title="Seleccione una carpeta de destino")
         self.ruta_exportacion.set(folder_selected)
+        
+#CONFIGURACIÓN DE COMUNICACIÓN
+    #Se idenfica si es Serial o IP para inhabilitar/habilitar los respectivos campos
+    def sel_tipo_comunicacion(self):
+        if self.tipo_comunicacion.get() == "Serial":
+            self.desconectar_TCP_IP()
+            self.direccionip.set("")
+            self.puertoip.set("")
+            self.direccionip_entry.configure(state="readonly")
+            self.puertoip_entry.configure(state="readonly")
+            self.conectar_ip_button.configure(state="disabled")
+            self.puertos_combobox.configure(state="enabled")
+            self.abrir_puerto_button.configure(state="enabled")
+            self.actualizar_puertos_button.configure(state="enabled")
+        else:
+            self.cerrar_puerto()
+            self.puertos_combobox.set("")
+            self.direccionip_entry.configure(state="normal")
+            self.puertoip_entry.configure(state="normal")
+            self.conectar_ip_button.configure(state="enabled")
+            self.puertos_combobox.configure(state="disabled")
+            self.abrir_puerto_button.configure(state="disabled")
+            self.actualizar_puertos_button.configure(state="disabled")
+        self.cerrar_puerto_button.configure(state="disabled")
+        self.desconectar_ip_button.configure(state="disabled")
 
-#CONFIGURACIÓN DE PUERTOS
     #Listar los puertos disponibles
     def listar_puertos(self):
         puertos = [puerto.device for puerto in serial.tools.list_ports.comports()]
@@ -390,15 +443,43 @@ class SerialInterface:
     
     #Cerrar el puerto
     def cerrar_puerto(self): 
-        if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
-            self.puerto_serial.close()
-            self.puerto_serial = None
-            self.puertos_combobox.configure(state="readonly")  # Desbloquear el combobox
-            self.abrir_puerto_button.configure(state="enabled")
-            self.cerrar_puerto_button.configure(state="disabled")
+        try:
+            if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
+                
+                self.puerto_serial.close()
+                self.puerto_serial = None
+                self.puertos_combobox.configure(state="readonly")  # Desbloquear el combobox
+                self.abrir_puerto_button.configure(state="enabled")
+                self.cerrar_puerto_button.configure(state="disabled")
+        except:
+            pass
+
+    #Conectar a TCP-IP
+    def conectar_TCP_IP(self):
+        ip = self.direccionip_entry.get()
+        if self.puertoip_entry.get()!="":
+            print("Es diferente a cero?")
+            port = int(self.puertoip_entry.get())
+            try:
+                self.tcp_ip_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.tcp_ip_connection.connect((ip, port))
+                print(f"Conectado a {ip}:{port}\n")
+                # Inicia un hilo para leer datos por TCP/IP
+                self.tcp_ip_data_thread = threading.Thread(target=self.leer_tcp_ip_data)
+                self.tcp_ip_data_thread.start()
+            except socket.error as e:
+                self.desconectar_TCP_IP()
+                print(f"No se pudo conectar a {ip}:{port}: {str(e)}\n")
+
+    #Desconectar de TCP_IP
+    def desconectar_TCP_IP(self):
+        if self.tcp_ip_connection is not None:
+            self.tcp_ip_connection.close()
+            print(self.tcp_ip_connection)
+            print("Conexión TCP/IP cerrada\n")
+
 
 #CONFIGURACIÓN DE ARCHIVO.INI PARA PRECARGAR Y GUARDAR LOS DATOS
-
 
     def cargar_configuracion(self):
         mac_actual = self.get_mac_address()  # Usa el método de obtener_mac() definido
@@ -412,9 +493,14 @@ class SerialInterface:
                 self.password_var.set(self.desencriptar(config['Configuracion'].get('password', '')))
                 self.machine_name_var.set(self.desencriptar(config['Configuracion'].get('machine_name', '')))
                 self.ruta_exportacion.set(self.desencriptar(config['Configuracion'].get('ruta_exportacion', '')))
+                self.tipo_comunicacion.set(self.desencriptar(config['Configuracion'].get('tipo_de_comunicacion','')))
+                self.direccionip.set(self.desencriptar(config['Configuracion'].get('direccion_ip','')))
+                self.puertoip.set(self.desencriptar(config['Configuracion'].get('puerto_ip','')))
                 # Cargar y establecer el último puerto en el combobox
-                ultimo_puerto = config['Configuracion'].get('ultimo_puerto', '')
+                ultimo_puerto = self.desencriptar(config['Configuracion'].get('ultimo_puerto', ''))
+                #self.tipo_comunicacion.set(config['Configuracion'].get('tipo_de_comunicacion', ''))
                 self.puertos_combobox.set(ultimo_puerto)
+                self.sel_tipo_comunicacion()
                 self.abrir_puerto()
         else:
             mensaje = "Este software solo puede ejecutarse en una computadora autorizada."
@@ -432,9 +518,12 @@ class SerialInterface:
         config['Configuracion']['password'] = self.encriptar(self.password_var.get())
         config['Configuracion']['machine_name'] = self.encriptar(self.machine_name_var.get())
         config['Configuracion']['ruta_exportacion'] = self.encriptar(self.ruta_exportacion.get())
+        config['Configuracion']['tipo_de_comunicacion'] = self.encriptar(self.tipo_comunicacion.get())
+        config['Configuracion']['direccion_ip'] = self.encriptar(self.direccionip.get())
+        config['Configuracion']['puerto_ip'] = self.encriptar(self.puertoip.get())
         # Obtener el último puerto seleccionado del combobox
         ultimo_puerto = self.puertos_combobox.get()
-        config['Configuracion']['ultimo_puerto'] = ultimo_puerto
+        config['Configuracion']['ultimo_puerto'] = self.encriptar(ultimo_puerto)
         with open('configuracion.ini', 'w') as configfile:
             config.write(configfile)
     
@@ -540,46 +629,59 @@ class SerialInterface:
     def leer_datos(self):
         while hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
             try:
-                dato = self.puerto_serial.readline().decode('utf-8')
-                if dato:
-                    self.datos_recibidos = True  # Datos recibidos, detener temporizador
-                    if "\x02" in dato and "\x03" in dato:
-                        trama = dato.split("\x02")[1].split("\x03")[0]
-                        valores = trama.split(",")
-
-                        def procesar_medida(valor, factor):
-                            medida = valor.split()[1]
-                            valor = round(float(medida) * factor)
-                            return valor
-
-                        valor_posicion_4 = valores[4].strip()
-                        valor_posicion_7 = valores[7].strip()
-
-                        factor_conversion = 2.54 if valor_posicion_4 == "E" else 1.0
-                        for valor in valores:
-                            if valor.startswith("L"):
-                                largo = procesar_medida(valor, factor_conversion)
-                                self.largo_entry.delete(0, tk.END)
-                                self.largo_entry.insert(0, str(largo))
-                            elif valor.startswith("W"):
-                                ancho = procesar_medida(valor, factor_conversion)
-                                self.ancho_entry.delete(0, tk.END)
-                                self.ancho_entry.insert(0, str(ancho))
-                            elif valor.startswith("H"):
-                                alto = procesar_medida(valor, factor_conversion)
-                                self.alto_entry.delete(0, tk.END)
-                                self.alto_entry.insert(0, str(alto))
-                            elif valor.startswith("K"):
-                                if valor_posicion_7 == "E":
-                                    peso = round(float(valor.split()[1]) * 0.4536, 2)
-                                else:
-                                    peso = round(float(valor.split()[1]), 2)
-                                self.peso_entry.delete(0, tk.END)
-                                self.peso_entry.insert(0, str(peso))
-                    self.verificar_datos_cubiscan()
+                self.dato = self.puerto_serial.readline().decode('utf-8')
+                self.procesar_trama_CS()
             except:
                 pass
     
+    def leer_tcp_ip_data(self):
+        while self.tcp_ip_connection is not None:
+            try:
+                self.dato = self.tcp_ip_connection.recv(1024).decode("utf-8")
+                self.procesar_trama_CS()
+            except Exception as e:
+                print(f"Error al recibir datos por TCP/IP: {e}")
+
+    def procesar_trama_CS(self):
+        try:
+            if self.dato:
+                self.datos_recibidos = True  # Datos recibidos, detener temporizador
+                if "\x02" in self.dato and "\x03" in self.dato:
+                    trama = self.dato.split("\x02")[1].split("\x03")[0]
+                    valores = trama.split(",")
+
+                    def procesar_medida(valor, factor):
+                        medida = valor.split()[1]
+                        valor = round(float(medida) * factor)
+                        return valor
+
+                    valor_posicion_4 = valores[4].strip()
+                    valor_posicion_7 = valores[7].strip()
+
+                    factor_conversion = 2.54 if valor_posicion_4 == "E" else 1.0
+                    for valor in valores:
+                        if valor.startswith("L"):
+                            largo = procesar_medida(valor, factor_conversion)
+                            self.largo_entry.delete(0, tk.END)
+                            self.largo_entry.insert(0, str(largo))
+                        elif valor.startswith("W"):
+                            ancho = procesar_medida(valor, factor_conversion)
+                            self.ancho_entry.delete(0, tk.END)
+                            self.ancho_entry.insert(0, str(ancho))
+                        elif valor.startswith("H"):
+                            alto = procesar_medida(valor, factor_conversion)
+                            self.alto_entry.delete(0, tk.END)
+                            self.alto_entry.insert(0, str(alto))
+                        elif valor.startswith("K"):
+                            if valor_posicion_7 == "E":
+                                peso = round(float(valor.split()[1]) * 0.4536, 2)
+                            else:
+                                peso = round(float(valor.split()[1]), 2)
+                            self.peso_entry.delete(0, tk.END)
+                            self.peso_entry.insert(0, str(peso))
+                self.verificar_datos_cubiscan()
+        except:
+            pass
     #Confirmación que ningun dato recibido sea cero.
     def verificar_datos_cubiscan(self):
         # Verificar si alguno de los campos está en 0
