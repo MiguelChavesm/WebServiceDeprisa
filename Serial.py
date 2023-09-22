@@ -61,6 +61,14 @@ class SerialInterface:
         self.tiempo_espera = 2  # Tiempo en segundos para esperar la recepción de datos
         self.datos_recibidos = False  # Agrega esta línea para inicializar la variable
 
+    def imagenes(self):
+        self.logo_montra = tk.PhotoImage(file="Icons/Logo_Montra3.png")
+        self.logo_montra = self.logo_montra.subsample(1, 1)
+        self.logo_cubiscan = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
+        self.logo_cubiscan = self.logo_cubiscan.subsample(1, 1)
+        
+        self.logo_deprisa = tk.PhotoImage(file="Icons/Deprisa_logo.png")
+        self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
 
 #CREACION LICENCIA TEMPORAL
     def verificar_fecha_limite(self):
@@ -73,21 +81,11 @@ class SerialInterface:
             mensaje = "La versión de prueba ha expirado. No puedes usar la aplicación."
             messagebox.showerror("Versión de Prueba Expirada", mensaje)
             self.cerrar_aplicacion()
-    
+
     def verificar_fecha_limite_periodicamente(self):
             # Programa la verificación de la fecha límite cada segundo
             self.verificar_fecha_limite()
             self.root.after(1000, self.verificar_fecha_limite_periodicamente)
-
-    def imagenes(self):
-        self.logo_montra = tk.PhotoImage(file="Icons/Logo_Montra3.png")
-        self.logo_montra = self.logo_montra.subsample(1, 1)
-                
-        self.logo_cubiscan = tk.PhotoImage(file="Icons/Cubiscan_logo.png")
-        self.logo_cubiscan = self.logo_cubiscan.subsample(1, 1)
-        
-        self.logo_deprisa = tk.PhotoImage(file="Icons/Deprisa_logo.png")
-        self.logo_deprisa = self.logo_deprisa.subsample(1, 1)
 
     def verify_credentials(self, username, password):
         # Verificar las credenciales en la base de datos y devolver True si son válidas, False si no
@@ -161,7 +159,6 @@ class SerialInterface:
 
 #CREACIÓN DE VENTANA DE MEDICIÓN
     def create_medicion_tab(self):
-
         self.sku_var = tk.StringVar()
         self.length_var = tk.StringVar()
         self.width_var = tk.StringVar()
@@ -173,7 +170,7 @@ class SerialInterface:
         self.colorbackground= "lightgrey"
         self.background = ttk.Label(self.medicion_tab, background=self.colorbackground)
         self.background.grid(row=0, column=0, rowspan=9,padx=(0,20), sticky="snew")
-    
+
         label_montra = ttk.Label(self.medicion_tab, image=self.logo_montra, background=self.colorbackground)
         label_montra.grid(row=0, column=0, rowspan=3, padx=(10,20), pady=(10,0), sticky="s")
         
@@ -183,7 +180,7 @@ class SerialInterface:
         label_cubiscan = ttk.Label(self.medicion_tab, image=self.logo_cubiscan,background=self.colorbackground)
         label_cubiscan.grid(row=3, column=0, rowspan=3, padx=(5,20), sticky="n")
 
-        ttk.Label(self.medicion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=6, rowspan=1, column=0, padx=(5,0), pady=(0,47), sticky="w")
+        ttk.Label(self.medicion_tab, text=self.texto_licencia ,background=self.colorbackground, font=("Arial", 9)).grid(row=6, rowspan=1, column=0, padx=(5,0), pady=(0,47), sticky="sw")
         
         ttk.Label(self.medicion_tab, text="SKU:").grid(row=0, column=1, padx=10, pady=5, sticky="w")
         self.sku_entry = ttk.Entry(self.medicion_tab, textvariable=self.sku_var, font=('Helvetica', 10), width=22)
@@ -395,7 +392,7 @@ class SerialInterface:
     def seleccionar_carpeta(self):
         folder_selected = filedialog.askdirectory(title="Seleccione una carpeta de destino")
         self.ruta_exportacion.set(folder_selected)
-        
+
 #CONFIGURACIÓN DE COMUNICACIÓN
     #Se idenfica si es Serial o IP para inhabilitar/habilitar los respectivos campos
     def sel_tipo_comunicacion(self):
@@ -496,7 +493,6 @@ class SerialInterface:
 
 
 #CONFIGURACIÓN DE ARCHIVO.INI PARA PRECARGAR Y GUARDAR LOS DATOS
-
     def cargar_configuracion(self):
         mac_actual = self.get_mac_address()  # Usa el método de obtener_mac() definido
         if mac_actual in self.direcciones_mac_permitidas:
@@ -524,7 +520,7 @@ class SerialInterface:
             messagebox.showerror("Error", mensaje)
             self.cerrar_aplicacion()
             #root.destroy()  # Cierra la aplicación
-            
+
     #Guardar configuración en archivo.ini
     def guardar_configuracion(self):
         config = configparser.ConfigParser()
@@ -556,18 +552,16 @@ class SerialInterface:
 
 #CONFIGURACIÓN PARA EXPORTACIÓN DE DATOS
     def exportar_excel(self):
-
         self.ruta_destino = Path(self.ruta_exportacion.get())
         self.fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
         nombre_archivo = f"CubiScan_{self.fecha_actual}.xlsx"
         ruta_completa = self.ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
-    # Verificar si la carpeta de destino existe
+        # Verificar si la carpeta de destino existe
         if self.ruta_exportacion.get() =="" or not self.ruta_destino.exists() or not self.ruta_destino.is_dir():
             self.ruta_destino="Export"
             if not os.path.exists(self.ruta_destino):
                 os.makedirs(self.ruta_destino)
             ruta_completa = f"{self.ruta_destino}/CubiScan_{self.fecha_actual}.xlsx" # Usar pathlib para construir la ruta
-
         workbook = openpyxl.Workbook()
         worksheet = workbook.active
         worksheet.title = "Medidas"
@@ -716,6 +710,7 @@ class SerialInterface:
                 self.verificar_datos_cubiscan()
         except:
             pass
+
     #Confirmación que ningun dato recibido sea cero.
     def verificar_datos_cubiscan(self):
         # Verificar si alguno de los campos está en 0
@@ -742,9 +737,7 @@ class SerialInterface:
         if hasattr(self, 'timer') or self.timer.is_alive():
             self.timer.cancel()
     
-
 #CONFIGURACIÓN ENVÍO JSON
-
     def verificar_conexion_internet(self):
         try:
             # Intenta hacer una solicitud GET a un sitio web conocido
@@ -754,6 +747,7 @@ class SerialInterface:
         except requests.ConnectionError:
             pass
         return False
+
     #Configuración del envío de estructura JSON
     def send_data(self):
         # Obtener los valores de los campos
@@ -840,7 +834,6 @@ class SerialInterface:
         self.width_var.set("")   # Borra el contenido del campo Ancho
         self.height_var.set("")  # Borra el contenido del campo Alto
         self.weight_var.set("")  # Borra el contenido del campo Peso
-
 
     #Conteos exitoso y fallidos de envío
     def update_contadores(self):
