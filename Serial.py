@@ -152,6 +152,8 @@ class SerialInterface:
     def cerrar_aplicacion(self):
         if hasattr(self, 'puerto_serial') and self.puerto_serial and self.puerto_serial.is_open:
             self.cerrar_puerto()  # Cerrar el puerto si está abierto
+        elif self.tcp_ip_connection is not None:
+            self.desconectar_TCP_IP()
         self.guardar_configuracion()  # Guardar la configuración antes de salir
         self.exportar_excel()
         self.exportar_log()
@@ -458,25 +460,39 @@ class SerialInterface:
     def conectar_TCP_IP(self):
         ip = self.direccionip_entry.get()
         if self.puertoip_entry.get()!="":
-            print("Es diferente a cero?")
             port = int(self.puertoip_entry.get())
             try:
                 self.tcp_ip_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 self.tcp_ip_connection.connect((ip, port))
-                print(f"Conectado a {ip}:{port}\n")
+                self.conectar_ip_button.configure(state="disabled")
+                self.desconectar_ip_button.configure(state="enabled")
+                self.direccionip_entry.configure(state="readonly")
+                self.puertoip_entry.configure(state="readonly")
+                self.tcp_ip_reading = True  # Habilitar la lectura
+                #print(f"Conectado a {ip}:{port}\n")
                 # Inicia un hilo para leer datos por TCP/IP
                 self.tcp_ip_data_thread = threading.Thread(target=self.leer_tcp_ip_data)
                 self.tcp_ip_data_thread.start()
             except socket.error as e:
                 self.desconectar_TCP_IP()
-                print(f"No se pudo conectar a {ip}:{port}: {str(e)}\n")
+                messagebox.showerror("Error", f"No se pudo conectar a {ip}:{port}: {str(e)}")
 
     #Desconectar de TCP_IP
     def desconectar_TCP_IP(self):
         if self.tcp_ip_connection is not None:
-            self.tcp_ip_connection.close()
-            print(self.tcp_ip_connection)
-            print("Conexión TCP/IP cerrada\n")
+            self.tcp_ip_reading = False  # Detener la lectura
+            try:
+                self.tcp_ip_connection.shutdown(socket.SHUT_RDWR)  # Apagar la conexión de lectura/escritura
+            except Exception as e:
+                pass  # Puedes manejar cualquier excepción si es necesario
+            finally:
+                self.tcp_ip_connection.close()
+                self.tcp_ip_connection = None
+                self.conectar_ip_button.configure(state="normal")
+                self.desconectar_ip_button.configure(state="disabled")
+                self.direccionip_entry.configure(state="normal")
+                self.puertoip_entry.configure(state="normal")
+                #self.tcp_ip_data_thread.join()  # Esperar a que el hilo de lectura termine
 
 
 #CONFIGURACIÓN DE ARCHIVO.INI PARA PRECARGAR Y GUARDAR LOS DATOS
@@ -502,6 +518,7 @@ class SerialInterface:
                 self.puertos_combobox.set(ultimo_puerto)
                 self.sel_tipo_comunicacion()
                 self.abrir_puerto()
+                self.conectar_TCP_IP()
         else:
             mensaje = "Este software solo puede ejecutarse en una computadora autorizada."
             messagebox.showerror("Error", mensaje)
@@ -572,7 +589,7 @@ class SerialInterface:
             # Guardar el archivo Excel
             self.guardar_configuracion()
             workbook.save(ruta_completa)
-            
+
     def exportar_log(self):
         if self.response_entry.get("1.0", "end-1c")!= "":
             text_to_export = self.response_entry.get("1.0", "end-1c")
@@ -613,17 +630,28 @@ class SerialInterface:
     def enviar_trama(self):
         self.iniciar_espera_datos()
         if hasattr(self, 'puerto_serial') and self.puerto_serial.is_open:
-            #self.iniciar_espera_datos()  # Iniciar la espera de datos
             trama = b'\x02M\x03\r\n'  # Trama: <STX>M<ETX><CR><LF>
             enviar_thread = threading.Thread(target=self.enviar_trama_thread, args=(trama,))
             enviar_thread.start()
-    
+        elif self.tcp_ip_connection is not None:
+            # Si no se ha establecido la conexión serial, enviar por red en un hilo separado
+            datos_a_enviar = b'\x02M\x03\r\n'  # Datos que deseas enviar por red
+            enviar_thread_ip = threading.Thread(target=self.enviar_datos_por_red_thread, args=(datos_a_enviar,))
+            enviar_thread_ip.start()
+
     #Metodo independiente para solicitar medición
     def enviar_trama_thread(self, trama):
         try:
             self.puerto_serial.write(trama)
         except Exception as e:
             print("Error al enviar la trama:", e)  
+
+    def enviar_datos_por_red_thread(self, datos):
+            if self.tcp_ip_connection is not None:
+                try:
+                    self.tcp_ip_connection.send(datos)  # Envía los datos directamente como bytes
+                except Exception as e:
+                    print("Error al enviar datos por red:", e)
 
     #Recepción de datos y estructurar en campos:
     def leer_datos(self):
@@ -635,11 +663,17 @@ class SerialInterface:
                 pass
     
     def leer_tcp_ip_data(self):
-        while self.tcp_ip_connection is not None:
+        while self.tcp_ip_reading:
             try:
+                if not self.tcp_ip_reading:
+                    break  # Salir del bucle si se detiene la lectura
                 self.dato = self.tcp_ip_connection.recv(1024).decode("utf-8")
+                if not self.dato:
+                    break  # Salir del bucle si no hay más datos
                 self.procesar_trama_CS()
             except Exception as e:
+                if not self.tcp_ip_reading:
+                    break  # Salir del bucle si se detiene la lectura debido a desconexión
                 print(f"Error al recibir datos por TCP/IP: {e}")
 
     def procesar_trama_CS(self):
@@ -685,7 +719,7 @@ class SerialInterface:
     #Confirmación que ningun dato recibido sea cero.
     def verificar_datos_cubiscan(self):
         # Verificar si alguno de los campos está en 0
-        if self.sku_var.get() <= '0' or self.length_var.get() <= '0' or self.width_var.get() <= '0' or self.weight_var.get() <= '0' and self.length_var.get()!= "" or self.width_var.get() == "" or self.height_var.get() == "" or self.weight_var.get() == "":
+        if self.length_var.get() <= '0' or self.width_var.get() <= '0' or self.weight_var.get() <= '0' and self.length_var.get()!= "" or self.width_var.get() == "" or self.height_var.get() == "" or self.weight_var.get() == "":
             self.medir_button.focus_set()
             messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
             return  # No se envía la información si algún campo es 0
