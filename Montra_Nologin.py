@@ -17,7 +17,7 @@ from pathlib import Path
 from tkinter import filedialog
 import customtkinter
 from PIL import Image
-
+# Arreglar que al seleccionar configuración, deja modificar los datos sin ingresar el usuario.
 
 class SerialInterface:
     def __init__(self, root):
@@ -46,7 +46,7 @@ class SerialInterface:
         
         self.notebook.bind("<<NotebookTabChanged>>", self.tab_changed)
         
-        self.fecha_limite = (2023, 10, 15, 13, 45)
+        self.fecha_limite = (2024, 12, 15, 13, 45)
         
         self.verificar_fecha_limite_periodicamente()
         
@@ -318,7 +318,7 @@ class SerialInterface:
         ttk.Label(self.configuracion_tab, text="DATOS WEB SERVICE:",font=("Helvetica", 13)).grid(row=0, column=1, columnspan=2, padx=separacion_borde, pady=(20,5), sticky="w")
         
         ttk.Label(self.configuracion_tab, text="URL del Web Service:").grid(row=1, padx=separacion_borde, column=1, pady=5, sticky="w")
-        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, show="*", width=27)
+        url_entry = ttk.Entry(self.configuracion_tab, textvariable=self.url_var, width=27)
         url_entry.grid(row=1, column=2, pady=5, sticky="w")
         
         ttk.Label(self.configuracion_tab, text="Máquina:").grid(row=4, column=1, padx=separacion_borde, pady=5, sticky="w")

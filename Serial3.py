@@ -28,7 +28,6 @@ class SerialInterface:
 
         self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
         self.texto_licencia="Desarrollado por Grupo Montra\nUso exclusivo para Deprisa\n\nLicencia: Deprisa Cartagena"
-        self.perfil_acceso= ""
         self.valores_combox=[]
         self.imagenes()
         self.mostrar_ventana_inicio_sesion()
@@ -47,7 +46,7 @@ class SerialInterface:
         self.cargar_configuracion()
         
         self.root.protocol("WM_DELETE_WINDOW", self.cerrar_aplicacion)
-        self.fecha_limite = (2023, 10, 19, 14, 38)
+        self.fecha_limite = (2024, 12, 19, 14, 38)
         
         self.verificar_fecha_limite_periodicamente()
         
@@ -164,7 +163,6 @@ class SerialInterface:
             elif acceso == 'OPERARIO':
                 self.notebook.tab(0, state="normal")  # Habilitar la pestaña de Medición
                 self.notebook.select(0)  # Cambiar a la pestaña de Medición
-                self.perfil_acceso=2
                 self.ventana_inicio_sesion.destroy()  # Cerrar la ventana de inicio de sesión
             elif acceso == 'SUPERUSUARIO':
                 self.notebook.tab(0, state="normal")  # Habilitar la pestaña de Medición
@@ -184,7 +182,6 @@ class SerialInterface:
             
         conn.close()
         self.usuario_registrado=usuario
-        self.perfil_acceso=acceso
 
 #CREACIÓN VENTANA DE USUARIOS
     def abrir_ventana_crear_usuario(self):

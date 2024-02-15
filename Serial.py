@@ -52,7 +52,7 @@ class SerialInterface:
         self.cargar_configuracion()
         
             
-        self.fecha_limite = (2023, 10, 15, 13, 45)
+        self.fecha_limite = (2024, 12, 15, 13, 45)
         
         self.verificar_fecha_limite_periodicamente()
         
@@ -751,6 +751,7 @@ class SerialInterface:
     #Configuración del envío de estructura JSON
     def send_data(self):
         # Obtener los valores de los campos
+
         sku = self.sku_var.get()
         largo = self.length_var.get()
         ancho = self.width_var.get()
