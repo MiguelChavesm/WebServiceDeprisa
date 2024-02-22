@@ -1,0 +1,2 @@
+Item number|Pack type|Unidad de medida|Cantidad de cajas|Length|Width|Height|Weight|Description
+S40J9EV091|Caja2-UOM1|LT|10|12.00|21.00|21.00|21.00|BOCIN TEMPLADOR               12

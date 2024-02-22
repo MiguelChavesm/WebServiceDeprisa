@@ -51,7 +51,7 @@ class SerialInterface:
         
         self.cargar_configuracion()
         
-            
+        
         self.fecha_limite = (2024, 12, 15, 13, 45)
         
         self.verificar_fecha_limite_periodicamente()
