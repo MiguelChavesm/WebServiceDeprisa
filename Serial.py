@@ -28,7 +28,7 @@ class SerialInterface:
     def __init__(self, root):
         self.root = root
         self.root.title("MONTRA")
-        root.iconbitmap('Icons/montra.ico')
+        #root.iconbitmap('Icons/montra.ico')
         # Define el ancho y alto de la ventana
 
         self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
@@ -52,7 +52,7 @@ class SerialInterface:
         self.cargar_configuracion()
         
         
-        self.fecha_limite = (2024, 12, 15, 13, 45)
+        self.fecha_limite = (2024, 12, 21, 13, 18)
         
         self.verificar_fecha_limite_periodicamente()
         
@@ -60,6 +60,8 @@ class SerialInterface:
         self.paquetes_no_enviados = 0
         self.tiempo_espera = 2  # Tiempo en segundos para esperar la recepción de datos
         self.datos_recibidos = False  # Agrega esta línea para inicializar la variable
+        self.root.after(100, self.cargar_icono)
+
 
     def imagenes(self):
         self.logo_montra = tk.PhotoImage(file="Icons/Logo_Montra3.png")
@@ -101,7 +103,11 @@ class SerialInterface:
             # Crear una ventana emergente personalizada para solicitar usuario y contraseña
             self.login_window = tk.Toplevel(self.root)
             self.login_window.title("Acceso")
-            self.login_window.iconbitmap('Icons/montra.ico')
+            position_x = int(self.root.winfo_x() + (self.root.winfo_width() / 2) - (250 / 2))
+            position_y = int(self.root.winfo_y() + (self.root.winfo_height() / 2) - (120 / 2))
+            self.login_window.geometry(f"{250}x{120}+{position_x}+{position_y}")
+            self.login_window.resizable(False, False)
+            self.login_window.attributes("-topmost", True)  # Mantener la ventana siempre visible
 
 
             username_label = ttk.Label(self.login_window, text="Usuario:")
@@ -114,6 +120,8 @@ class SerialInterface:
             password_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
             password_entry = ttk.Entry(self.login_window, show="*")
             password_entry.grid(row=1, column=1, padx=10, pady=5)
+            self.login_window.iconbitmap('Icons/montra.ico')
+
 
             def check_credentials():
                 username = username_entry.get()
@@ -132,6 +140,11 @@ class SerialInterface:
             self.login_window.bind("<Return>", lambda event: check_credentials())
             self.login_window.grab_set()
             self.login_window.protocol("WM_DELETE_WINDOW", self.cerrar_ventana)
+
+
+    def cargar_icono(self):
+        self.root.iconbitmap("Icons/montra.ico")
+
 
     def cerrar_ventana(self):
         self.notebook.select(0)  # Cambiar a la pestaña de Medición
