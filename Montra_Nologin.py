@@ -33,7 +33,10 @@ class SerialInterface:
 
         self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
         #print(self.get_mac_address())
-        self.texto_licencia="Desarrollado por Grupo Montra\nUso exclusivo para Deprisa\n\nLicencia: Deprisa Cartagena"
+        self.fecha_limite = (2024, 12, 22, 13, 16)
+        self.fecha_formateada = f"{self.fecha_limite[2]:02d}/{self.fecha_limite[1]:02d}/{self.fecha_limite[0]}"
+        self.texto_licencia=(f"Desarrollado por Grupo Montra\n\nLicencia temporal:\nDeprisa Cartagena\n\n\nFecha finalización: {self.fecha_formateada}")
+
 
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
@@ -50,9 +53,6 @@ class SerialInterface:
         self.notebook.bind("<<NotebookTabChanged>>", self.tab_changed)
         
         self.cargar_configuracion()
-        
-        
-        self.fecha_limite = (2024, 12, 21, 13, 18)
         
         self.verificar_fecha_limite_periodicamente()
         
@@ -227,13 +227,25 @@ class SerialInterface:
         self.response_entry.grid(row=6, column=1, columnspan=20, pady=5, sticky="nsew")
 
         # Crear la tabla para mostrar los datos
-        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha')
+        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Message')
         self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
 
+        """
         for col in columns:
             self.tree.heading(col, text=col)
             self.tree.column(col, width=100, stretch=tk.YES)
+        """
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column('Sku', width=130)
+            self.tree.column('Largo', width=50)
+            self.tree.column('Ancho', width=50)
+            self.tree.column('Alto', width=50)
+            self.tree.column('Peso', width=50)
+            self.tree.column('Fecha', width=130)
+            self.tree.column('Message', width=150)
 
+        
         self.tree.grid(row=4, column=1, columnspan=20, pady=(10, 10), sticky="nsew")
 
         # Aplicar un estilo con bordes a la tabla
@@ -279,7 +291,7 @@ class SerialInterface:
 
         # Ajustar el peso de las filas y columnas no expansibles
         non_expanding_rows = [0, 1, 2, 3, 5, 7]
-        non_expanding_columns = [1, 2, 3, 4]
+        non_expanding_columns = [0, 1, 2, 3, 4]
 
         for i in non_expanding_rows:
             self.medicion_tab.grid_rowconfigure(i, weight=0)
