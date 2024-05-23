@@ -1,2 +1,0 @@
-Item number|Pack type|Unidad de medida|Cantidad de cajas|Length|Width|Height|Weight|Description
-10910025|Unidad-UOM3|EMP|10|12.00|21.00|12.00|21.00|ACEITE 10W30 (CANECA 5 GAL.)  TOTAL RUBIA OPTIMA 1100 FE

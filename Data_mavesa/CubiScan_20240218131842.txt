@@ -1,2 +1,0 @@
-Item number|Pack type|Unidad de medida|Cantidad de cajas|Length|Width|Height|Weight|Description
-10910025|Subcaja-UOM2|EMP|10|14.00|18.00|7.00|8.00|ACEITE 10W30 (CANECA 5 GAL.)  TOTAL RUBIA OPTIMA 1100 FE

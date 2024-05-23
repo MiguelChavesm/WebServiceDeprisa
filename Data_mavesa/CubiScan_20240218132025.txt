@@ -1,2 +1,0 @@
-Item number|Pack type|Unidad de medida|Cantidad de cajas|Length|Width|Height|Weight|Description
-234567|Unidad-UOM3|UN|10|10.00|12.00|21.00|45.00|

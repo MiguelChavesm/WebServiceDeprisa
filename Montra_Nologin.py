@@ -166,7 +166,6 @@ class SerialInterface:
         elif self.tcp_ip_connection is not None:
             self.desconectar_TCP_IP()
         self.guardar_configuracion()  # Guardar la configuración antes de salir
-        self.exportar_excel()
         self.exportar_log()
         self.root.destroy()  # Cerrar la aplicación
 
@@ -227,7 +226,7 @@ class SerialInterface:
         self.response_entry.grid(row=6, column=1, columnspan=20, pady=5, sticky="nsew")
 
         # Crear la tabla para mostrar los datos
-        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Message')
+        columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Respuesta')
         self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
 
         """
@@ -243,10 +242,12 @@ class SerialInterface:
             self.tree.column('Alto', width=50)
             self.tree.column('Peso', width=50)
             self.tree.column('Fecha', width=130)
-            self.tree.column('Message', width=150)
+            self.tree.column('Respuesta', width=150)
 
         
         self.tree.grid(row=4, column=1, columnspan=20, pady=(10, 10), sticky="nsew")
+        # Lista para guardar las referencias de los elementos insertados en la tabla
+        self.rows = []
 
         # Aplicar un estilo con bordes a la tabla
         style = ttk.Style()
@@ -297,6 +298,9 @@ class SerialInterface:
             self.medicion_tab.grid_rowconfigure(i, weight=0)
         for i in non_expanding_columns:
             self.medicion_tab.grid_columnconfigure(i, weight=0)
+        
+        self.sku_entry.focus_set()
+
 
     #CREACIÓN DE COMANDOS PARA FOCUS Y ACCIONES CON ENTER
     # Evento de ENTER en SKU
@@ -607,54 +611,72 @@ class SerialInterface:
 
 
 #CONFIGURACIÓN PARA EXPORTACIÓN DE DATOS
-    def exportar_excel(self):
-        self.ruta_destino = Path(self.ruta_exportacion.get())
-        self.fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H-%M-%S")
-        nombre_archivo = f"CubiScan_{self.fecha_actual}.xlsx"
-        ruta_completa = self.ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
-        # Verificar si la carpeta de destino existe
-        if self.ruta_exportacion.get() =="" or not self.ruta_destino.exists() or not self.ruta_destino.is_dir():
-            self.ruta_destino="Export"
-            if not os.path.exists(self.ruta_destino):
-                os.makedirs(self.ruta_destino)
-            ruta_completa = f"{self.ruta_destino}/CubiScan_{self.fecha_actual}.xlsx" # Usar pathlib para construir la ruta
-        workbook = openpyxl.Workbook()
-        worksheet = workbook.active
-        worksheet.title = "Medidas"
+    def exportar_excel(self, sku, largo, ancho, alto, peso, fecha, mensaje):
         
-        # Encabezados
-        encabezados = ["SKU", "Largo", "Ancho", "Alto", "Peso", "Fecha"]
-        for col_num, encabezado in enumerate(encabezados, 1):
-            worksheet.cell(row=1, column=col_num, value=encabezado)
+        self.ruta_destino = Path(self.ruta_exportacion.get())
+        self.fecha_actual = datetime.datetime.now().strftime("%d-%m-%Y")
 
-        # Datos
-        if self.tree.get_children():
-            for row_num, item in enumerate(self.tree.get_children(), 2):
-                datos_fila = [self.tree.item(item, 'values')[0], self.tree.item(item, 'values')[1],
-                            self.tree.item(item, 'values')[2], self.tree.item(item, 'values')[3],
-                            self.tree.item(item, 'values')[4], self.tree.item(item, 'values')[5]]
-                for col_num, valor in enumerate(datos_fila, 1):
-                    worksheet.cell(row=row_num, column=col_num, value=valor)
-            
-            # Guardar el archivo Excel
-            self.guardar_configuracion()
-            workbook.save(ruta_completa)
+        if self.ruta_exportacion.get() =="" or not self.ruta_destino.exists() or not self.ruta_destino.is_dir():
+            default_folder="Export"
+            self.ruta_destino = Path(default_folder)
+            if not self.ruta_destino.exists():
+                os.makedirs(self.ruta_destino)
+            nombre_archivo = f"CubiScan_{self.fecha_actual}.xlsx"
+            ruta_completa = self.ruta_destino / nombre_archivo
+        else:
+            nombre_archivo = f"CubiScan_{self.fecha_actual}.xlsx"
+            ruta_completa = self.ruta_destino / nombre_archivo  # Usar pathlib para construir la ruta
+
+        
+        # Verificar si el archivo ya existe
+        if ruta_completa.exists():
+            workbook = openpyxl.load_workbook(ruta_completa)
+            worksheet = workbook.active
+            print("si existe")
+        else:
+            workbook = openpyxl.Workbook()
+            worksheet = workbook.active
+            worksheet.title = "Medidas"
+            # Encabezados
+            encabezados = ["SKU", "Largo", "Ancho", "Alto", "Peso", "Fecha", "Respuesta"]
+            for col_num, encabezado in enumerate(encabezados, 1):
+                worksheet.cell(row=1, column=col_num, value=encabezado)
+
+
+        # Agregar nueva fila
+        nueva_fila = [sku, largo, ancho, alto, peso,  fecha, mensaje]
+        worksheet.append(nueva_fila)
+
+        # Guardar el archivo Excel
+        workbook.save(ruta_completa)
+        self.guardar_configuracion()
 
     def exportar_log(self):
-        if self.response_entry.get("1.0", "end-1c")!= "":
-            text_to_export = self.response_entry.get("1.0", "end-1c")
-            # Abrir un cuadro de diálogo para seleccionar la carpeta de destino
-            folder_selected = "Log"
-            if not os.path.exists(folder_selected):
-                os.makedirs(folder_selected)
+        # Obtener la fecha actual en formato %d-%m-%Y
+        fecha_actual = datetime.datetime.now().strftime("%d-%m-%Y")
+        
+        # Nombre del archivo con la fecha actual
+        file_name = f"log_{fecha_actual}.txt"
+        file_path = os.path.join("Log", file_name)
 
-            if folder_selected:
-                # Combinar la carpeta seleccionada con el nombre del archivo
-                file_path = f"{folder_selected}/Log_{self.fecha_actual}.txt"
+        # Obtener el texto actual en el Entry
+        text_to_export = self.response_entry.get("1.0", "end-1c")
 
-                # Escribir el contenido en el archivo TXT
-                with open(file_path, "w") as file:
-                    file.write(text_to_export)
+        # Verificar si la carpeta "Log" existe, y si no, crearla
+        log_folder = "Log"
+        if not os.path.exists(log_folder):
+            os.makedirs(log_folder)
+
+        
+        # Si el archivo ya existe, agregar nuevo contenido
+        if os.path.exists(file_path):
+            with open(file_path, "a") as file:
+                # Agregar nueva línea y el texto actual
+                file.write(text_to_export)
+        else:
+            # Si el archivo no existe, crear uno nuevo
+            with open(file_path, "w") as file:
+                file.write(text_to_export)
 
     def exportar_webservice_error(self):
         log_to_export = self.webservice_error.get("1.0", "end-1c")
@@ -804,6 +826,17 @@ class SerialInterface:
             pass
         return False
 
+
+    def es_numero_valido(self, valor):
+        try:
+            # Intenta convertir el valor a flotante
+            numero = float(valor)
+            # Verifica que el número no sea cero
+            return numero != 0
+        except ValueError:
+            # Si falla la conversión, no es un número válido
+            return False
+
     #Configuración del envío de estructura JSON
     def send_data(self):
         # Obtener los valores de los campos
@@ -814,14 +847,6 @@ class SerialInterface:
         alto = self.height_var.get()
         peso = self.weight_var.get()
         fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Guardar datos en la base de datos
-        conn = sqlite3.connect('Montradb.db')
-        cursor = conn.cursor()
-        cursor.execute('INSERT INTO Montra (sku, largo, ancho, alto, peso, fecha) VALUES (?, ?, ?, ?, ?, ?)', (sku, largo, ancho, alto, peso, fecha))
-        conn.commit()
-        conn.close()
-        
         # Construir el JSON con los datos ingresados
         data = {
             "machine_pid": self.machine_name_var.get(),
@@ -835,31 +860,56 @@ class SerialInterface:
         }
         
         # Verificar si alguno de los campos está en 0
-        if sku <= '0' or largo <= '0' or ancho <= '0' or alto <= '0' or peso <= '0':
-            self.send_button.focus_set()
+        if  not self.es_numero_valido(largo) or not self.es_numero_valido(ancho) or not self.es_numero_valido(alto) or not self.es_numero_valido(peso):
+            self.medir_button.focus_set()
+            messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
+            return  # No se envía la información si algún campo es 0 o inválido
+        elif sku=="":
+            self.sku_entry.focus_set()
             messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
             return  # No se envía la información si algún campo es 0
-        elif sku == "" or largo == "" or alto == "" or ancho == "" or peso=="":
-            self.send_button.focus_set()
+        elif largo == "" or alto == "" or ancho == "" or peso=="":
+            self.medir_button.focus_set()
+            messagebox.showerror("Error", "Los campos SKU, Largo, Ancho y Alto no pueden ser 0 o estar vacíos.")
+            return  # No se envía la información si algún campo es 0
         else:
             # Mostrar datos en la tabla
-            self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha))
+            self.item_id=self.tree.insert('', 'end', values=(sku, largo, ancho, alto, peso, fecha))
+            self.rows.append(self.item_id)  # Guardar referencia del elemento insertado
+            self.sku_entry.focus_set()
+
 
 
         self.response_entry.tag_config('warning', foreground="red")
         self.response_entry.tag_config('ok', foreground="green")
+        
+        
         # Realizar la solicitud POST al WebService
         if self.verificar_conexion_internet():
             url = self.url_var.get()
             headers = {"Content-Type": "application/json"}
             response = requests.post(url, data=json.dumps(data), headers=headers, auth=(self.username_var.get(), self.password_var.get()))
-            #contador
-            if response.status_code == 200:
-                self.paquetes_enviados += 1
-                self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
-                self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
-                self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente   
-            else:
+            #Parsear la respuesta JSON
+            respuestaJson = json.loads(response.text)
+            # Obtener el valor del campo 'message'
+            mensaje = respuestaJson.get('message')
+            # Imprimir el mensaje
+            
+            max_request_attempts = 3  # Número máximo de intentos de solicitud
+            request_attempts = 0
+            while request_attempts < max_request_attempts:
+                if response.status_code == 200:
+                    self.paquetes_enviados += 1
+                    self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
+                    self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: {response.text}\n", 'ok')
+                    self.response_entry.config(state=tk.DISABLED)  # Habilita la edición temporalmente 
+                    if self.rows:  # Verificar si hay elementos en la tabla
+                        self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
+                        self.tree.set(self.item_id, 'Respuesta', mensaje) 
+                    return
+                time.sleep(1)  # Esperar 1 segundo antes de reintentar
+                request_attempts += 1                
+            if response.status_code !=200:
                 self.paquetes_no_enviados += 1
                 self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
                 self.response_entry.insert(tk.END, f"{fecha}  SKU={sku}, Respuesta WS: {response.text}\n", 'warning')
@@ -869,6 +919,9 @@ class SerialInterface:
                 data_text= data_text.replace("'", '"')
                 self.webservice_error.insert(tk.END, data_text)
                 self.exportar_webservice_error()
+                if self.rows:  # Verificar si hay elementos en la tabla
+                    self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
+                    self.tree.set(self.item_id, 'Respuesta', mensaje)
         else:
             self.paquetes_no_enviados += 1
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
@@ -877,7 +930,11 @@ class SerialInterface:
             self.webservice_error= tk.Text()
             data_text= str(data)
             data_text= data_text.replace("'", '"')
-            self.webservice_error.insert(tk.END, data_text)
+            self.webservice_error.insert(tk.END, data_text) 
+            mensaje="No hay conexión a internet, no fue posible enviar la información"
+            if self.rows:  # Verificar si hay elementos en la tabla
+                self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
+                self.tree.set(self.item_id, 'Respuesta', mensaje)
             self.exportar_webservice_error() 
             messagebox.showerror("Error", "No hay comunicación con el host. Verifique su conexión a internet.")
         
@@ -886,11 +943,20 @@ class SerialInterface:
         self.tree.yview_moveto(1.0)  # Desplaza la vista hacia el final de la tabla
         #actualizar contadores
         self.update_contadores()
+        self.exportar_excel(sku, largo, ancho, alto, peso, fecha, mensaje)
         self.sku_var.set("")     # Borra el contenido del campo SKU
         self.length_var.set("")  # Borra el contenido del campo Largo
         self.width_var.set("")   # Borra el contenido del campo Ancho
         self.height_var.set("")  # Borra el contenido del campo Alto
         self.weight_var.set("")  # Borra el contenido del campo Peso
+        
+        # Guardar datos en la base de datos
+        conn = sqlite3.connect('Montradb.db')
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO Montra (sku, largo, ancho, alto, peso, fecha, mensaje) VALUES (?, ?, ?, ?, ?, ?, ?)', (sku, largo, ancho, alto, peso, fecha, mensaje))
+        conn.commit()
+        conn.close()
+        
 
     #Conteos exitoso y fallidos de envío
     def update_contadores(self):
