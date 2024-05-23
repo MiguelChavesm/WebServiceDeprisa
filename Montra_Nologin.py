@@ -33,10 +33,9 @@ class SerialInterface:
 
         self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
         #print(self.get_mac_address())
-        self.fecha_limite = (2024, 12, 22, 13, 16)
+        self.fecha_limite = (2024, 12, 5, 13, 16)
         self.fecha_formateada = f"{self.fecha_limite[2]:02d}/{self.fecha_limite[1]:02d}/{self.fecha_limite[0]}"
         self.texto_licencia=(f"Desarrollado por Grupo Montra\n\nLicencia temporal:\nDeprisa Cartagena\n\n\nFecha finalización: {self.fecha_formateada}")
-
 
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill="both", expand=True)
@@ -229,23 +228,27 @@ class SerialInterface:
         columns = ('Sku', 'Largo', 'Ancho', 'Alto', 'Peso', 'Fecha', 'Respuesta')
         self.tree = ttk.Treeview(self.medicion_tab, columns=columns, show='headings')
 
-        """
+
         for col in columns:
             self.tree.heading(col, text=col)
-            self.tree.column(col, width=100, stretch=tk.YES)
-        """
-        for col in columns:
-            self.tree.heading(col, text=col)
-            self.tree.column('Sku', width=130)
-            self.tree.column('Largo', width=50)
-            self.tree.column('Ancho', width=50)
-            self.tree.column('Alto', width=50)
-            self.tree.column('Peso', width=50)
-            self.tree.column('Fecha', width=130)
-            self.tree.column('Respuesta', width=150)
+            self.tree.column(col, anchor='center')  # Centrar el texto en cada columna
+        self.tree.column('Sku', width=130)
+        self.tree.column('Largo', width=50)
+        self.tree.column('Ancho', width=50)
+        self.tree.column('Alto', width=50)
+        self.tree.column('Peso', width=50)
+        self.tree.column('Fecha', width=130)
+        self.tree.column('Respuesta', width=150)
 
         
+        style = ttk.Style()
+        style.configure("Treeview", font=('Helvetica', 9), rowheight=20, borderwidth=1, relief="solid")
+        style.configure("Treeview.Heading", font=('Helvetica', 9))
+
         self.tree.grid(row=4, column=1, columnspan=20, pady=(10, 10), sticky="nsew")
+        self.medicion_tab.grid_rowconfigure(0, weight=1)
+        self.medicion_tab.grid_columnconfigure(0, weight=1)
+
         # Lista para guardar las referencias de los elementos insertados en la tabla
         self.rows = []
 
@@ -906,6 +909,8 @@ class SerialInterface:
                     if self.rows:  # Verificar si hay elementos en la tabla
                         self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
                         self.tree.set(self.item_id, 'Respuesta', mensaje) 
+                        self.tree.tag_configure('verde', background='lightgreen')
+                        self.tree.item(self.item_id, tags=('verde',))
                     return
                 time.sleep(1)  # Esperar 1 segundo antes de reintentar
                 request_attempts += 1                
@@ -922,6 +927,10 @@ class SerialInterface:
                 if self.rows:  # Verificar si hay elementos en la tabla
                     self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
                     self.tree.set(self.item_id, 'Respuesta', mensaje)
+                    self.tree.tag_configure('rojo', background='#FA5656')
+                    self.tree.item(self.item_id, tags=('rojo',))
+
+
         else:
             self.paquetes_no_enviados += 1
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
@@ -935,6 +944,8 @@ class SerialInterface:
             if self.rows:  # Verificar si hay elementos en la tabla
                 self.item_id = self.rows[-1]  # Obtener la referencia del último elemento insertado
                 self.tree.set(self.item_id, 'Respuesta', mensaje)
+                self.tree.tag_configure('rojo', background='#FA5656')
+                self.tree.item(self.item_id, tags=('rojo',))
             self.exportar_webservice_error() 
             messagebox.showerror("Error", "No hay comunicación con el host. Verifique su conexión a internet.")
         

@@ -359,6 +359,7 @@ class SerialInterface:
 
         for col in columns:
             self.tree.heading(col, text=col)
+            self.tree.column(col, anchor='center')  # Centrar el texto en cada columna
             self.tree.column('Sku', width=200)
             self.tree.column('Largo', width=50)
             self.tree.column('Ancho', width=50)
