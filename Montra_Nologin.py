@@ -20,7 +20,6 @@ from PIL import Image
 from cryptography.fernet import Fernet
 import socket
 
-
 clave_cifrado = b'jvXOzwTyfQusXwZBgh0d2GdT0gMCvdR8oOWkFQPpx9o='
 fernet = Fernet(clave_cifrado)
 
@@ -31,7 +30,7 @@ class SerialInterface:
         #root.iconbitmap('Icons/montra.ico')
         # Define el ancho y alto de la ventana
 
-        self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
+        self.direcciones_mac_permitidas = ["4C-44-5B-95-52-85", "BC-F1-71-F3-5F-60", "30-05-05-B8-BB-35", "30-05-05-B8-B4-69", "F0-92-1C-DC-7B-D1"]  # Lista de direcciones MAC permitidas  # Reemplaza con la MAC permitida
         #print(self.get_mac_address())
         self.fecha_limite = (2024, 12, 5, 13, 16)
         self.fecha_formateada = f"{self.fecha_limite[2]:02d}/{self.fecha_limite[1]:02d}/{self.fecha_limite[0]}"
@@ -60,7 +59,6 @@ class SerialInterface:
         self.tiempo_espera = 2  # Tiempo en segundos para esperar la recepción de datos
         self.datos_recibidos = False  # Agrega esta línea para inicializar la variable
         self.root.after(100, self.cargar_icono)
-
 
     def imagenes(self):
         self.logo_montra = tk.PhotoImage(file="Icons/Logo_Montra3.png")
@@ -645,7 +643,6 @@ class SerialInterface:
             for col_num, encabezado in enumerate(encabezados, 1):
                 worksheet.cell(row=1, column=col_num, value=encabezado)
 
-
         # Agregar nueva fila
         nueva_fila = [sku, largo, ancho, alto, peso,  fecha, mensaje]
         worksheet.append(nueva_fila)
@@ -736,7 +733,7 @@ class SerialInterface:
                 self.procesar_trama_CS()
             except:
                 pass
-    
+
     def leer_tcp_ip_data(self):
         while self.tcp_ip_reading:
             try:
@@ -829,7 +826,6 @@ class SerialInterface:
             pass
         return False
 
-
     def es_numero_valido(self, valor):
         try:
             # Intenta convertir el valor a flotante
@@ -881,8 +877,6 @@ class SerialInterface:
             self.rows.append(self.item_id)  # Guardar referencia del elemento insertado
             self.sku_entry.focus_set()
 
-
-
         self.response_entry.tag_config('warning', foreground="red")
         self.response_entry.tag_config('ok', foreground="green")
         
@@ -930,7 +924,6 @@ class SerialInterface:
                     self.tree.tag_configure('rojo', background='#FA5656')
                     self.tree.item(self.item_id, tags=('rojo',))
 
-
         else:
             self.paquetes_no_enviados += 1
             self.response_entry.config(state=tk.NORMAL)  # Habilita la edición temporalmente
@@ -973,7 +966,6 @@ class SerialInterface:
     def update_contadores(self):
         self.paquetes_enviados_label.config(text=f"Envíos exitosos: {self.paquetes_enviados}")
         self.paquetes_no_enviados_label.config(text=f"Envíos fallidos: {self.paquetes_no_enviados}")
-
 
 if __name__ == "__main__":
     root = tk.Tk()
